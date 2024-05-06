@@ -218,9 +218,9 @@ int main(void)
     {
         prevFrameTime = glfwGetTime();
 
-        //if (glfwGetKey(window, GLFW_KEY_Q)) sphere1.position.y -= 0.001f;
-        //if (glfwGetKey(window, GLFW_KEY_E)) sphere1.position.y += 0.001f;
-        //mainProgram.SetUniform3f("sphere1.position", sphere1.position);
+        if (glfwGetKey(window, GLFW_KEY_Q)) sphere1.position.y -= 0.001f;
+        if (glfwGetKey(window, GLFW_KEY_E)) sphere1.position.y += 0.001f;
+        mainProgram.SetUniform3f("sphere1.position", sphere1.position);
 
         if (glfwGetKey(window, GLFW_KEY_W)) cam.position.y += 0.01f;
         if (glfwGetKey(window, GLFW_KEY_S)) cam.position.y -= 0.01f;
