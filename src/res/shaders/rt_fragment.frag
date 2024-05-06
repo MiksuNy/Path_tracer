@@ -132,7 +132,7 @@ vec3 RayTrace(Ray ray, int maxBounces, inout uint state) {
 	vec3 emittedLight = vec3(0);
 
 	vec3 skyLight = vec3(0.8, 0.8, 1.0);
-	float skyIntensity = 10.0;
+	float skyIntensity = 1.0;
 
 	for (int i = 0; i <= maxBounces; i++) {
 		HitInfo hitInfo = CalculateRay(ray);
@@ -161,7 +161,7 @@ vec3 RayTrace(Ray ray, int maxBounces, inout uint state) {
 			break;
 		}
 	}
-	return incomingLight / maxBounces;
+	return incomingLight /= maxBounces / 2;
 }
 
 void main() {
@@ -174,8 +174,8 @@ void main() {
 
 	vec3 finalColor = vec3(0);
 
-	int samples = 50;
-	int maxBounces = 12;
+	int samples = 80;
+	int maxBounces = 24;
 	for (int i = 0; i < samples; i++) {
 		finalColor += RayTrace(ray, maxBounces, rngState);
 	}
