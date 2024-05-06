@@ -127,7 +127,7 @@ int main(void)
 
 
 
-    Camera cam(glm::vec3(0, 0, 1), 0.8f);
+    Camera cam(glm::vec3(0, 0, 1), 0.9f);
 
     Object::Material metal1;
     metal1.baseColor = glm::vec3(0.8, 0.2, 0.2);
@@ -145,10 +145,19 @@ int main(void)
     glass1.baseColor = glm::vec3(1);
     glass1.emissionColor = glm::vec3(0);
     glass1.emissionStrength = 0.0f;
-    glass1.roughness = 0.02f;
+    glass1.roughness = 0.8f;
     glass1.isRefractive = true;
-    glass1.ior = 0.12f;
+    glass1.ior = 0.8f;
     glass1.refractionAmount = 0.95f;
+
+    Object::Material glass2;
+    glass2.baseColor = glm::vec3(1);
+    glass2.emissionColor = glm::vec3(0);
+    glass2.emissionStrength = 0.0f;
+    glass2.roughness = 0.8f;
+    glass2.isRefractive = true;
+    glass2.ior = 0.95f;
+    glass2.refractionAmount = 0.95f;
 
     Object::Material ground;
     ground.baseColor = glm::vec3(0.9);
@@ -159,7 +168,7 @@ int main(void)
     Object::Material light;
     light.baseColor = glm::vec3(1);
     light.emissionColor = glm::vec3(1);
-    light.emissionStrength = 40.0f;
+    light.emissionStrength = 5.0f;
     light.isLight = true;
 
     mainProgram.Use();
@@ -167,24 +176,24 @@ int main(void)
     Object::Sphere sphere1(glm::vec3(0.0f, 0.1f, -2.0f), 0.1f);
     mainProgram.SetUniform3f("sphere1.position",                    sphere1.position);
     mainProgram.SetUniform1f("sphere1.radius",                      sphere1.radius);
-    mainProgram.SetUniform3f("sphere1.material.baseColor",          metal1.baseColor);
-    mainProgram.SetUniform1f("sphere1.material.roughness",          metal1.roughness);
-    mainProgram.SetUniform3f("sphere1.material.emissionColor",      metal1.emissionColor);
-    mainProgram.SetUniform1f("sphere1.material.emissionStrength",   metal1.emissionStrength);
-    mainProgram.SetUniform1i("sphere1.material.isRefractive",       metal1.isRefractive);
-    mainProgram.SetUniform1f("sphere1.material.ior",                metal1.ior);
-    mainProgram.SetUniform1f("sphere1.material.refractionAmount",   metal1.refractionAmount);
+    mainProgram.SetUniform3f("sphere1.material.baseColor",          glass1.baseColor);
+    mainProgram.SetUniform1f("sphere1.material.roughness",          glass1.roughness);
+    mainProgram.SetUniform3f("sphere1.material.emissionColor",      glass1.emissionColor);
+    mainProgram.SetUniform1f("sphere1.material.emissionStrength",   glass1.emissionStrength);
+    mainProgram.SetUniform1i("sphere1.material.isRefractive",       glass1.isRefractive);
+    mainProgram.SetUniform1f("sphere1.material.ior",                glass1.ior);
+    mainProgram.SetUniform1f("sphere1.material.refractionAmount",   glass1.refractionAmount);
 
     Object::Sphere sphere2(glm::vec3(0.0f, 0.3f, -2.0f), 0.1f);
     mainProgram.SetUniform3f("sphere2.position",                    sphere2.position);
     mainProgram.SetUniform1f("sphere2.radius",                      sphere2.radius);
-    mainProgram.SetUniform3f("sphere2.material.baseColor",          metal1.baseColor);
-    mainProgram.SetUniform1f("sphere2.material.roughness",          metal1.roughness);
-    mainProgram.SetUniform3f("sphere2.material.emissionColor",      metal1.emissionColor);
-    mainProgram.SetUniform1f("sphere2.material.emissionStrength",   metal1.emissionStrength);
-    mainProgram.SetUniform1i("sphere2.material.isRefractive",       metal1.isRefractive);
-    mainProgram.SetUniform1f("sphere2.material.ior",                metal1.ior);
-    mainProgram.SetUniform1f("sphere2.material.refractionAmount",   metal1.refractionAmount);
+    mainProgram.SetUniform3f("sphere2.material.baseColor",          glass2.baseColor);
+    mainProgram.SetUniform1f("sphere2.material.roughness",          glass2.roughness);
+    mainProgram.SetUniform3f("sphere2.material.emissionColor",      glass2.emissionColor);
+    mainProgram.SetUniform1f("sphere2.material.emissionStrength",   glass2.emissionStrength);
+    mainProgram.SetUniform1i("sphere2.material.isRefractive",       glass2.isRefractive);
+    mainProgram.SetUniform1f("sphere2.material.ior",                glass2.ior);
+    mainProgram.SetUniform1f("sphere2.material.refractionAmount",   glass2.refractionAmount);
 
     Object::Sphere groundSphere(glm::vec3(0.0f, -1000.0f, -2.0f), 1000.0f);
     mainProgram.SetUniform3f("ground.position",                     groundSphere.position);
@@ -196,7 +205,7 @@ int main(void)
     mainProgram.SetUniform1i("ground.material.isRefractive",        ground.isRefractive);
     mainProgram.SetUniform1f("ground.material.ior",                 ground.ior);
 
-    Object::Sphere lightSphere(glm::vec3(2000.0f, 2000.0f, -2.0f), 800.0f);
+    Object::Sphere lightSphere(glm::vec3(2000.0f, 2000.0f, -2.0f), 1000.0f);
     mainProgram.SetUniform3f("light.position",                     lightSphere.position);
     mainProgram.SetUniform1f("light.radius",                       lightSphere.radius);
     mainProgram.SetUniform3f("light.material.baseColor",           light.baseColor);
@@ -218,9 +227,9 @@ int main(void)
     {
         prevFrameTime = glfwGetTime();
 
-        if (glfwGetKey(window, GLFW_KEY_Q)) sphere1.position.y -= 0.001f;
-        if (glfwGetKey(window, GLFW_KEY_E)) sphere1.position.y += 0.001f;
-        mainProgram.SetUniform3f("sphere1.position", sphere1.position);
+        //if (glfwGetKey(window, GLFW_KEY_Q)) sphere1.position.y -= 0.001f;
+        //if (glfwGetKey(window, GLFW_KEY_E)) sphere1.position.y += 0.001f;
+        //mainProgram.SetUniform3f("sphere1.position", sphere1.position);
 
         if (glfwGetKey(window, GLFW_KEY_W)) cam.position.y += 0.01f;
         if (glfwGetKey(window, GLFW_KEY_S)) cam.position.y -= 0.01f;
