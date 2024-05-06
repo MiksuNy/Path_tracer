@@ -28,21 +28,4 @@ public:
 
         Sphere(glm::vec3 pos, float rad);
     };
-
-    class Plane
-    {
-    public:
-        glm::vec3 position;
-
-        Plane(glm::vec3 pos);
-    };
-
-    class Cube
-    {
-    public:
-        glm::vec3 position;
-        float t1, t2, t3;
-        
-        Cube(glm::vec3 pos);
-    };
 };

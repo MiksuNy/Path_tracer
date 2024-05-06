@@ -133,7 +133,7 @@ int main(void)
     metal1.baseColor = glm::vec3(0.8, 0.2, 0.2);
     metal1.emissionColor = glm::vec3(0);
     metal1.emissionStrength = 0.0f;
-    metal1.roughness = 0.08f;
+    metal1.roughness = 0.05f;
 
     Object::Material diffuse1;
     diffuse1.baseColor = glm::vec3(0.2, 0.8, 0.2);
