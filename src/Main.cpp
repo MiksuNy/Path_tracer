@@ -6,8 +6,8 @@
 #include "Shader.h"
 #include "Camera.h"
 
-#define SCREEN_W 1366
-#define SCREEN_H 768
+#define SCREEN_W 1920
+#define SCREEN_H 1080
 
 float screenQuadVertices[] = {
     -1.0f, -1.0f, 0.0f,
@@ -38,8 +38,8 @@ int main(void)
 
     GLFWwindow* window;
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
@@ -146,22 +146,31 @@ int main(void)
     diffuse1.roughness = 0.99f;
 
     Object::Material glass1;
-    glass1.baseColor = glm::vec3(1);
+    glass1.baseColor = glm::vec3(1.0, 0.2, 0.1);
     glass1.emissionColor = glm::vec3(0);
     glass1.emissionStrength = 0.0f;
-    glass1.roughness = 0.8f;
+    glass1.roughness = 0.001f;
     glass1.isRefractive = true;
-    glass1.ior = 0.8f;
-    glass1.refractionAmount = 0.95f;
+    glass1.ior = 0.95f;
+    glass1.refractionAmount = 0.9f;
 
     Object::Material glass2;
-    glass2.baseColor = glm::vec3(1);
+    glass2.baseColor = glm::vec3(1.0, 0.2, 0.1);
     glass2.emissionColor = glm::vec3(0);
     glass2.emissionStrength = 0.0f;
-    glass2.roughness = 0.8f;
+    glass2.roughness = 0.005f;
     glass2.isRefractive = true;
     glass2.ior = 0.95f;
-    glass2.refractionAmount = 0.95f;
+    glass2.refractionAmount = 0.9f;
+
+    Object::Material glass3;
+    glass3.baseColor = glm::vec3(1.0, 0.2, 0.1);
+    glass3.emissionColor = glm::vec3(0);
+    glass3.emissionStrength = 0.0f;
+    glass3.roughness = 0.01f;
+    glass3.isRefractive = true;
+    glass3.ior = 0.95f;
+    glass3.refractionAmount = 0.9f;
 
     Object::Material ground;
     ground.baseColor = glm::vec3(0.9);
@@ -177,7 +186,7 @@ int main(void)
 
     mainProgram.Use();
 
-    Object::Sphere sphere1(glm::vec3(0.0f, 0.1f, -2.0f), 0.1f);
+    Object::Sphere sphere1(glm::vec3(-0.6f, 0.3f, -1.0f), 0.3f);
     mainProgram.SetUniform3f("sphere1.position",                    sphere1.position);
     mainProgram.SetUniform1f("sphere1.radius",                      sphere1.radius);
     mainProgram.SetUniform3f("sphere1.material.baseColor",          glass1.baseColor);
@@ -188,7 +197,7 @@ int main(void)
     mainProgram.SetUniform1f("sphere1.material.ior",                glass1.ior);
     mainProgram.SetUniform1f("sphere1.material.refractionAmount",   glass1.refractionAmount);
 
-    Object::Sphere sphere2(glm::vec3(0.0f, 0.3f, -2.0f), 0.1f);
+    Object::Sphere sphere2(glm::vec3(0.0f, 0.3f, -1.0f), 0.3f);
     mainProgram.SetUniform3f("sphere2.position",                    sphere2.position);
     mainProgram.SetUniform1f("sphere2.radius",                      sphere2.radius);
     mainProgram.SetUniform3f("sphere2.material.baseColor",          glass2.baseColor);
@@ -198,6 +207,17 @@ int main(void)
     mainProgram.SetUniform1i("sphere2.material.isRefractive",       glass2.isRefractive);
     mainProgram.SetUniform1f("sphere2.material.ior",                glass2.ior);
     mainProgram.SetUniform1f("sphere2.material.refractionAmount",   glass2.refractionAmount);
+
+    Object::Sphere sphere3(glm::vec3(0.6f, 0.3f, -1.0f), 0.3f);
+    mainProgram.SetUniform3f("sphere3.position",                    sphere3.position);
+    mainProgram.SetUniform1f("sphere3.radius",                      sphere3.radius);
+    mainProgram.SetUniform3f("sphere3.material.baseColor",          glass3.baseColor);
+    mainProgram.SetUniform1f("sphere3.material.roughness",          glass3.roughness);
+    mainProgram.SetUniform3f("sphere3.material.emissionColor",      glass3.emissionColor);
+    mainProgram.SetUniform1f("sphere3.material.emissionStrength",   glass3.emissionStrength);
+    mainProgram.SetUniform1i("sphere3.material.isRefractive",       glass3.isRefractive);
+    mainProgram.SetUniform1f("sphere3.material.ior",                glass3.ior);
+    mainProgram.SetUniform1f("sphere3.material.refractionAmount",   glass3.refractionAmount);
 
     Object::Sphere groundSphere(glm::vec3(0.0f, -1000.0f, -2.0f), 1000.0f);
     mainProgram.SetUniform3f("ground.position",                     groundSphere.position);
@@ -209,7 +229,7 @@ int main(void)
     mainProgram.SetUniform1i("ground.material.isRefractive",        ground.isRefractive);
     mainProgram.SetUniform1f("ground.material.ior",                 ground.ior);
 
-    Object::Sphere lightSphere(glm::vec3(2000.0f, 2000.0f, -2.0f), 1000.0f);
+    Object::Sphere lightSphere(glm::vec3(0.0f, 1.0f, -4.0f), 0.3f);
     mainProgram.SetUniform3f("light.position",                     lightSphere.position);
     mainProgram.SetUniform1f("light.radius",                       lightSphere.radius);
     mainProgram.SetUniform3f("light.material.baseColor",           light.baseColor);
@@ -235,10 +255,10 @@ int main(void)
         //if (glfwGetKey(window, GLFW_KEY_E)) sphere1.position.y += 0.001f;
         //mainProgram.SetUniform3f("sphere1.position", sphere1.position);
 
-        if (glfwGetKey(window, GLFW_KEY_W)) cam.position.y += 0.01f;
-        if (glfwGetKey(window, GLFW_KEY_S)) cam.position.y -= 0.01f;
-        if (glfwGetKey(window, GLFW_KEY_A)) cam.position.x -= 0.01f;
-        if (glfwGetKey(window, GLFW_KEY_D)) cam.position.x += 0.01f;
+        if (glfwGetKey(window, GLFW_KEY_W)) cam.velocity.y += 0.005f;
+        if (glfwGetKey(window, GLFW_KEY_S)) cam.velocity.y -= 0.005f;
+        if (glfwGetKey(window, GLFW_KEY_A)) cam.velocity.x -= 0.005f;
+        if (glfwGetKey(window, GLFW_KEY_D)) cam.velocity.x += 0.005f;
         if (glfwGetKey(window, GLFW_KEY_UP))
         {
             cam.position.z -= 0.02f;
@@ -249,6 +269,9 @@ int main(void)
             cam.position.z += 0.02f;
             cam.forward += 0.02f;
         }
+
+        cam.velocity *= 0.7f;
+        cam.position += cam.velocity;
 
         mainProgram.SetUniformCamera(cam);
 

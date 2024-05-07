@@ -1,7 +1,7 @@
-#version 150
+#version 460
 
-#define SCREEN_W 1366
-#define SCREEN_H 768
+#define SCREEN_W 1920
+#define SCREEN_H 1080
 
 #define PI 3.14159265
 #define TWO_PI 6.28318530
@@ -29,11 +29,12 @@ uniform Camera cam;
 
 uniform Sphere sphere1;
 uniform Sphere sphere2;
+uniform Sphere sphere3;
 uniform Sphere ground;
 uniform Sphere light;
 
-Sphere spheres[2] = {
-	ground, light
+Sphere spheres[] = {
+	sphere1, sphere2, sphere3, ground, light
 };
 
 
@@ -133,28 +134,29 @@ vec3 RayTrace(Ray ray, int maxBounces, inout uint state) {
 
 	for (int i = 0; i <= maxBounces; i++) {
 		HitInfo hitInfo = CalculateRay(ray);
-
-		currBounces++;
-
 		if (hitInfo.hasHit && hitInfo.hitDist < INFINITY) {
 			ray.origin = hitInfo.hitPoint;
 
 			if (hitInfo.hitMaterial.isRefractive) {
 				if (RandomValue(state) < hitInfo.hitMaterial.refractionAmount) {
-					ray.direction = refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior);
+					ray.direction = refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior) - RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness;
 				} else {
 					ray.direction = reflect(ray.direction, hitInfo.hitNormal) + RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness;
 				}
 			} else if (hitInfo.hitMaterial.isLight) {
-				ray.direction = RandomInHemisphere(hitInfo.hitNormal, state);
+				ray.direction = -hitInfo.hitNormal;
 			} else {
 				ray.direction = reflect(ray.direction, hitInfo.hitNormal) + RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness;
 			}
+
+			currBounces++;
 
 			emittedLight += hitInfo.hitMaterial.emissionColor * hitInfo.hitMaterial.emissionStrength;
 			rayColor *= hitInfo.hitMaterial.baseColor;
 			incomingLight += emittedLight * rayColor;
 		} else {
+			currBounces++;
+			
 			emittedLight += skyLight * skyIntensity;
 			rayColor *= emittedLight;
 			incomingLight += rayColor;
@@ -166,7 +168,7 @@ vec3 RayTrace(Ray ray, int maxBounces, inout uint state) {
 
 void main() {
 	uint pixelIndex = uint(viewport.x / SCREEN_W * 4294967295.0 + viewport.y / SCREEN_H * 4294967295.0);
-	uint rngState = uint(pixelIndex * uint(719393));
+	uint rngState = uint(pixelIndex * 719393u);
 
 	Ray ray;
 	ray.origin = cam.position;
@@ -174,8 +176,8 @@ void main() {
 
 	vec3 finalColor = vec3(0);
 
-	int samples = 80;
-	int maxBounces = 24;
+	int samples = 100;
+	int maxBounces = 8;
 	for (int i = 0; i < samples; i++) {
 		finalColor += RayTrace(ray, maxBounces, rngState);
 	}
