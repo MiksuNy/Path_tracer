@@ -28,4 +28,10 @@ public:
     {
         fprintf(stderr, "Error: %s\n", description);
     }
+
+    static void GetError()
+    {
+        GLenum err = glGetError();
+        std::cout << err << ", " << glewGetErrorString(err) << std::endl;
+    }
 };

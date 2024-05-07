@@ -1,7 +1,7 @@
-#version 460
+#version 150
 
-layout (location = 0) in vec3 vertPos;
-layout (location = 1) in vec2 texCoords;
+in vec3 vertPos;
+in vec2 texCoords;
 
 out vec2 accumTexCoords;
 

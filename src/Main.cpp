@@ -6,8 +6,8 @@
 #include "Shader.h"
 #include "Camera.h"
 
-#define SCREEN_W 1920
-#define SCREEN_H 1080
+#define SCREEN_W 1366
+#define SCREEN_H 768
 
 float screenQuadVertices[] = {
     -1.0f, -1.0f, 0.0f,
@@ -38,8 +38,8 @@ int main(void)
 
     GLFWwindow* window;
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
@@ -59,7 +59,7 @@ int main(void)
         std::cout << "GLEW could not be initialized" << std::endl;
     }
 
-    std::cout << glGetString(GL_VERSION) << std::endl;
+    std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
 
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(Error::MessageCallback, 0);
@@ -71,12 +71,16 @@ int main(void)
 
     rayTraceVertex.Create(GL_VERTEX_SHADER);
     rayTraceVertex.Parse("src/res/shaders/rt_vertex.vert");
+    Error::GetError();
     rayTraceFragment.Create(GL_FRAGMENT_SHADER);
     rayTraceFragment.Parse("src/res/shaders/rt_fragment.frag");
+    Error::GetError();
 
     mainProgram.Create();
     mainProgram.Attach(rayTraceVertex);
+    Error::GetError();
     mainProgram.Attach(rayTraceFragment);
+    Error::GetError();
     mainProgram.Link();
 
 

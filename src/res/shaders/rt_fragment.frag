@@ -1,4 +1,7 @@
-#version 460
+#version 150
+
+#define SCREEN_W 1366
+#define SCREEN_H 768
 
 #define PI 3.14159265
 #define TWO_PI 6.28318530
@@ -9,7 +12,7 @@
 in vec2 accumTexCoords;
 out vec4 fragColor;
 
-vec2 viewport = vec2(gl_FragCoord.xy / vec2(1920, 1080));
+vec2 viewport = vec2(gl_FragCoord.xy / vec2(SCREEN_W, SCREEN_H));
 vec2 viewportCenter = viewport - 0.5;
 
 uniform float frameTime;
@@ -29,20 +32,16 @@ uniform Sphere sphere2;
 uniform Sphere ground;
 uniform Sphere light;
 
-Sphere spheres[] = {
-	sphere1, sphere2, ground, light
+Sphere spheres[2] = {
+	ground, light
 };
 
 
-# =======================================================
-# ================== Utility Functions ==================
-# =======================================================
-
 
 uint NextRandom(inout uint state) {
-	state = state * 747796405 + 2891336453;
-	uint result = ((state >> ((state >> 28) + 4)) ^ state) * 277803737;
-	result = (result >> 22) ^ result;
+	state = state * 747796405u + 2891336453u;
+	uint result = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+	result = (result >> 22u) ^ result;
 	return result;
 }
 
@@ -81,10 +80,6 @@ float LengthSquared(vec3 vec) {
 }
 
 
-# =================================================
-# ================== Ray Tracing ==================
-# =================================================
-
 
 HitInfo HitSphere(vec3 center, float radius, Ray ray) {
 	HitInfo tempHitInfo;
@@ -96,7 +91,7 @@ HitInfo HitSphere(vec3 center, float radius, Ray ray) {
     
 	float discriminant = halfB * halfB - a * c;
 
-	float t = (-halfB - sqrt(discriminant) ) / a;
+	float t = (-halfB - sqrt(discriminant)) / a;
 
     if (t > 0.00001) {
 		tempHitInfo.hasHit = true;
@@ -134,8 +129,13 @@ vec3 RayTrace(Ray ray, int maxBounces, inout uint state) {
 	vec3 skyLight = vec3(0.8, 0.8, 1.0);
 	float skyIntensity = 1.0;
 
+	int currBounces = 0;
+
 	for (int i = 0; i <= maxBounces; i++) {
 		HitInfo hitInfo = CalculateRay(ray);
+
+		currBounces++;
+
 		if (hitInfo.hasHit && hitInfo.hitDist < INFINITY) {
 			ray.origin = hitInfo.hitPoint;
 
@@ -161,12 +161,12 @@ vec3 RayTrace(Ray ray, int maxBounces, inout uint state) {
 			break;
 		}
 	}
-	return incomingLight /= maxBounces / 2;
+	return incomingLight /= currBounces;
 }
 
 void main() {
-	uint pixelIndex = uint(viewport.x / 1920 * 4294967295.0 + viewport.y / 1080 * 4294967295.0);
-	uint rngState = uint(pixelIndex * 719393);
+	uint pixelIndex = uint(viewport.x / SCREEN_W * 4294967295.0 + viewport.y / SCREEN_H * 4294967295.0);
+	uint rngState = uint(pixelIndex * uint(719393));
 
 	Ray ray;
 	ray.origin = cam.position;
