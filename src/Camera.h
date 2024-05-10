@@ -5,12 +5,7 @@
 class Camera
 {
 public:
-	glm::vec3 position;
-	glm::vec3 velocity;
-	glm::vec3 up;
-	glm::vec3 right;
-	glm::vec3 forward;
-	float fov;
+	glm::vec3 position, velocity, up, right, forward;
 
-	Camera(glm::vec3 position, float fov);
+	Camera(glm::vec3 position);
 };

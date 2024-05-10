@@ -46,7 +46,6 @@ void Program::SetUniformCamera(Camera &cam)
 	SetUniform3f("cam.forward", cam.forward);
 	SetUniform3f("cam.up", cam.up);
 	SetUniform3f("cam.right", cam.right);
-	SetUniform1f("cam.fov", cam.fov);
 }
 
 Program::~Program() { glDeleteProgram(ID); }
