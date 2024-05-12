@@ -168,7 +168,7 @@ int main(void)
     glass1.emissionStrength = 0.0f;
     glass1.roughness = 0.01f;
     glass1.isRefractive = true;
-    glass1.ior = 0.45f;
+    glass1.ior = 0.95f;
     glass1.refractionAmount = 0.98f;
 
     Object::Material ground;
@@ -180,10 +180,34 @@ int main(void)
     Object::Material light;
     light.baseColor = glm::vec3(1);
     light.emissionColor = glm::vec3(1);
-    light.emissionStrength = 4.0f;
+    light.emissionStrength = 1.0f;
     light.isLight = true;
 
     mainProgram.Use();
+
+    Object::Triangle tri1(glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0));
+    mainProgram.SetUniform3f("tri1.p1", tri1.p1);
+    mainProgram.SetUniform3f("tri1.p2", tri1.p2);
+    mainProgram.SetUniform3f("tri1.p3", tri1.p3);
+    mainProgram.SetUniform3f("tri1.material.baseColor",             ground.baseColor);
+    mainProgram.SetUniform1f("tri1.material.roughness",             ground.roughness);
+    mainProgram.SetUniform3f("tri1.material.emissionColor",         ground.emissionColor);
+    mainProgram.SetUniform1f("tri1.material.emissionStrength",      ground.emissionStrength);
+    mainProgram.SetUniform1i("tri1.material.isRefractive",          ground.isRefractive);
+    mainProgram.SetUniform1f("tri1.material.ior",                   ground.ior);
+    mainProgram.SetUniform1f("tri1.material.refractionAmount",      ground.refractionAmount);
+
+    Object::Triangle tri2(glm::vec3(-2.0, 0.0, -2.0), glm::vec3(2.0, 0.0, -2.0), glm::vec3(0.0, 3.0, -2.0));
+    mainProgram.SetUniform3f("tri2.p1", tri2.p1);
+    mainProgram.SetUniform3f("tri2.p2", tri2.p2);
+    mainProgram.SetUniform3f("tri2.p3", tri2.p3);
+    mainProgram.SetUniform3f("tri2.material.baseColor",             ground.baseColor);
+    mainProgram.SetUniform1f("tri2.material.roughness",             ground.roughness);
+    mainProgram.SetUniform3f("tri2.material.emissionColor",         ground.emissionColor);
+    mainProgram.SetUniform1f("tri2.material.emissionStrength",      ground.emissionStrength);
+    mainProgram.SetUniform1i("tri2.material.isRefractive",          ground.isRefractive);
+    mainProgram.SetUniform1f("tri2.material.ior",                   ground.ior);
+    mainProgram.SetUniform1f("tri2.material.refractionAmount",      ground.refractionAmount);
 
     Object::Sphere sphere1(glm::vec3(-0.6f, 0.3f, -1.0f), 0.3f);
     mainProgram.SetUniform3f("sphere1.position",                    sphere1.position);
@@ -236,6 +260,7 @@ int main(void)
     mainProgram.SetUniform3f("light.material.emissionColor",       light.emissionColor);
     mainProgram.SetUniform1f("light.material.emissionStrength",    light.emissionStrength);
     mainProgram.SetUniform1i("light.material.isRefractive",        light.isRefractive);
+    mainProgram.SetUniform1i("light.material.isLight",             light.isLight);
     mainProgram.SetUniform1f("light.material.ior",                 light.ior);
 
     mainProgram.Unuse();
@@ -243,7 +268,7 @@ int main(void)
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;
     
-    float currAccumPass = 0.0f;
+    int currAccumPass = 0;
 
     glBindVertexArray(vao);
     
@@ -258,7 +283,7 @@ int main(void)
         //std::cout << cam.velocity.x << ", " << cam.velocity.y << ", " << cam.velocity.z << std::endl;
         if (abs(cam.velocity.x) > 0.001 || abs(cam.velocity.y) > 0.001 || abs(cam.velocity.z) > 0.001)
         {
-            currAccumPass = 0.0f;
+            currAccumPass = 0;
 
             glBindFramebuffer(GL_FRAMEBUFFER, screenFboID);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -274,7 +299,7 @@ int main(void)
             cam.position.z -=   0.01f;
             cam.forward -=      0.01f;
 
-            currAccumPass = 0.0f;
+            currAccumPass = 0;
 
             glBindFramebuffer(GL_FRAMEBUFFER, screenFboID);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -285,7 +310,7 @@ int main(void)
             cam.position.z +=   0.01f;
             cam.forward +=      0.01f;
 
-            currAccumPass = 0.0f;
+            currAccumPass = 0;
 
             glBindFramebuffer(GL_FRAMEBUFFER, screenFboID);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -308,17 +333,17 @@ int main(void)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         mainProgram.Unuse();
 
-        mainProgram.Use();
-        currAccumPass += 1.0f;
-        std::cout << currAccumPass << std::endl;
-        mainProgram.SetUniform1f("currAccumPass", currAccumPass);
-        mainProgram.Unuse();
-
         accumProgram.Use();
         glBindTexture(GL_TEXTURE_2D, accumTexID);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, screenQuadIndices);
         glBindTexture(GL_TEXTURE_2D, 0);
         accumProgram.Unuse();
+
+        mainProgram.Use();
+        currAccumPass++;
+        std::cout << currAccumPass << std::endl;
+        mainProgram.SetUniform1f("currAccumPass", (float)currAccumPass);
+        mainProgram.Unuse();
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
