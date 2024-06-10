@@ -64,9 +64,9 @@ float RandomValueND(inout uint state) {
 }
 
 vec3 RandomDirection(vec3 normal, inout uint state) {
-	float x = RandomValueND(state) + normal.x;
-	float y = RandomValueND(state) + normal.y;
-	float z = RandomValueND(state) + normal.z;
+	float x = RandomValueND(state);
+	float y = RandomValueND(state);
+	float z = RandomValueND(state);
 	return vec3(x, y, z);
 }
 
@@ -113,6 +113,7 @@ HitInfo HitSphere(vec3 center, float radius, Ray ray) {
 	}
 }
 
+// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 HitInfo HitTriangle(Triangle tri, in Ray ray) {
 	HitInfo tempHitInfo;
 
@@ -121,7 +122,7 @@ HitInfo HitTriangle(Triangle tri, in Ray ray) {
 	vec3 rayCrossE2 = cross(ray.direction, edge2);
 	float det = dot(edge1, rayCrossE2);
 	
-	if (det > -0.00001 && det < 0.00001) {
+	if (det < 0.00001) {
 		tempHitInfo.hasHit = false;
 		return tempHitInfo;
 	}
@@ -188,8 +189,8 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 	vec3 incomingLight = vec3(0);
 	vec3 emittedLight = vec3(0);
 
-	vec3 skyColor = vec3(0.96, 0.9, 1.0);
-	float skyIntensity = 1.0;
+	vec3 skyColor = vec3(0.8, 0.9, 1.0);
+	float skyIntensity = 0.0;
 
 	int currBounces = 0;
 
@@ -215,16 +216,15 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 				ray.direction = reflect(ray.direction, hitInfo.hitNormal) + RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness;
 			}
 
-			emittedLight += hitInfo.hitMaterial.emissionColor * hitInfo.hitMaterial.emissionStrength;
+			emittedLight = hitInfo.hitMaterial.emissionColor * hitInfo.hitMaterial.emissionStrength;
 			rayColor *= hitInfo.hitMaterial.baseColor;
 			incomingLight += emittedLight * rayColor;
 		} else {
 			currBounces++;
 			
-			emittedLight += skyColor * skyIntensity;
+			emittedLight = skyColor * skyIntensity;
 			rayColor *= emittedLight;
 			incomingLight += rayColor;
-			break;
 		}
 	}
 	return incomingLight /= currBounces;
@@ -236,17 +236,19 @@ void main() {
 
 	Ray ray;
 	ray.origin = cam.position;
-	ray.direction = vec3(vec2(viewportCenter.x * 16/9, viewportCenter.y) + cam.position.xy, cam.forward) - ray.origin;
+	ray.direction = vec3(vec2(viewportCenter.x * 16/9, viewportCenter.y) + cam.position.xy, cam.forward.z) - ray.origin;
 
 	vec3 accumColor = texture(accumTexture, accumTexCoords).xyz;
 	vec3 rayTraceColor = vec3(0);
 
-	int maxBounces = 16;
-	int samples = 20;
+	int maxBounces = 18;
+	int samples = 1;
 	for (int i = 0; i < samples; i++) {
 		rayTraceColor += RayTrace(ray, maxBounces, rngState);
 	}
-	rayTraceColor /= samples;
 
-	fragColor = vec4(rayTraceColor / currAccumPass + accumColor, 1.0);
+	rayTraceColor /= samples;
+	accumColor += rayTraceColor;
+
+	fragColor = vec4(accumColor, 1.0);
 }

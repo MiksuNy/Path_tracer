@@ -6,7 +6,7 @@
 #include "Object.h"
 #include "Camera.h"
 
-class Shader
+struct Shader
 {
 public:
 	GLuint ID;
@@ -17,7 +17,7 @@ public:
 	~Shader();
 };
 
-class Program
+struct Program
 {
 public:
 	GLuint ID;
