@@ -146,124 +146,48 @@ int main(void)
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
+    Mesh cubeMesh("src/res/meshes/default_cube.obj");
 
     Camera cam(glm::vec3(0, 0, 1));
 
-    Object::Material metal1;
+    Material metal1;
     metal1.baseColor = glm::vec3(0.1, 1.0, 0.1);
     metal1.emissionColor = glm::vec3(0);
     metal1.emissionStrength = 0.0f;
     metal1.roughness = 0.01f;
 
-    Object::Material diffuse1;
+    Material diffuse1;
     diffuse1.baseColor = glm::vec3(0.1, 0.1, 1.0);
     diffuse1.emissionColor = glm::vec3(0);
     diffuse1.emissionStrength = 0.0f;
     diffuse1.roughness = 1.0f;
 
-    Object::Material glass1;
+    Material glass1;
     glass1.baseColor = glm::vec3(1.0, 0.1, 0.1);
     glass1.emissionColor = glm::vec3(0);
     glass1.emissionStrength = 0.0f;
     glass1.roughness = 0.01f;
     glass1.isRefractive = true;
-    glass1.ior = 0.95f;
+    glass1.ior = 0.9f;
     glass1.refractionAmount = 0.98f;
 
-    Object::Material ground;
+    Material ground;
     ground.baseColor = glm::vec3(1);
     ground.emissionColor = glm::vec3(0);
     ground.emissionStrength = 0.0f;
-    ground.roughness = 1.0f;
+    ground.roughness = 0.99f;
 
-    Object::Material light;
+    Material light;
     light.baseColor = glm::vec3(1);
-    light.emissionColor = glm::vec3(1);
+    light.emissionColor = glm::vec3(0.3, 0.76, 0.2);
     light.emissionStrength = 1.0f;
     light.isLight = true;
 
-    mainProgram.Use();
+    Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
 
-    Object::Triangle tri1(glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0));
-    mainProgram.SetUniform3f("tri1.p1", tri1.p1);
-    mainProgram.SetUniform3f("tri1.p2", tri1.p2);
-    mainProgram.SetUniform3f("tri1.p3", tri1.p3);
-    mainProgram.SetUniform3f("tri1.material.baseColor",             ground.baseColor);
-    mainProgram.SetUniform1f("tri1.material.roughness",             ground.roughness);
-    mainProgram.SetUniform3f("tri1.material.emissionColor",         ground.emissionColor);
-    mainProgram.SetUniform1f("tri1.material.emissionStrength",      ground.emissionStrength);
-    mainProgram.SetUniform1i("tri1.material.isRefractive",          ground.isRefractive);
-    mainProgram.SetUniform1f("tri1.material.ior",                   ground.ior);
-    mainProgram.SetUniform1f("tri1.material.refractionAmount",      ground.refractionAmount);
-
-    Object::Triangle tri2(glm::vec3(-2.0, 0.0, -2.0), glm::vec3(2.0, 0.0, -2.0), glm::vec3(0.0, 3.0, -2.0));
-    mainProgram.SetUniform3f("tri2.p1", tri2.p1);
-    mainProgram.SetUniform3f("tri2.p2", tri2.p2);
-    mainProgram.SetUniform3f("tri2.p3", tri2.p3);
-    mainProgram.SetUniform3f("tri2.material.baseColor",             ground.baseColor);
-    mainProgram.SetUniform1f("tri2.material.roughness",             ground.roughness);
-    mainProgram.SetUniform3f("tri2.material.emissionColor",         ground.emissionColor);
-    mainProgram.SetUniform1f("tri2.material.emissionStrength",      ground.emissionStrength);
-    mainProgram.SetUniform1i("tri2.material.isRefractive",          ground.isRefractive);
-    mainProgram.SetUniform1f("tri2.material.ior",                   ground.ior);
-    mainProgram.SetUniform1f("tri2.material.refractionAmount",      ground.refractionAmount);
-
-    Object::Sphere sphere1(glm::vec3(-0.6f, 0.3f, -1.0f), 0.3f);
-    mainProgram.SetUniform3f("sphere1.position",                    sphere1.position);
-    mainProgram.SetUniform1f("sphere1.radius",                      sphere1.radius);
-    mainProgram.SetUniform3f("sphere1.material.baseColor",          metal1.baseColor);
-    mainProgram.SetUniform1f("sphere1.material.roughness",          metal1.roughness);
-    mainProgram.SetUniform3f("sphere1.material.emissionColor",      metal1.emissionColor);
-    mainProgram.SetUniform1f("sphere1.material.emissionStrength",   metal1.emissionStrength);
-    mainProgram.SetUniform1i("sphere1.material.isRefractive",       metal1.isRefractive);
-    mainProgram.SetUniform1f("sphere1.material.ior",                metal1.ior);
-    mainProgram.SetUniform1f("sphere1.material.refractionAmount",   metal1.refractionAmount);
-
-    Object::Sphere sphere2(glm::vec3(0.0f, 0.3f, -1.0f), 0.3f);
-    mainProgram.SetUniform3f("sphere2.position",                    sphere2.position);
-    mainProgram.SetUniform1f("sphere2.radius",                      sphere2.radius);
-    mainProgram.SetUniform3f("sphere2.material.baseColor",          diffuse1.baseColor);
-    mainProgram.SetUniform1f("sphere2.material.roughness",          diffuse1.roughness);
-    mainProgram.SetUniform3f("sphere2.material.emissionColor",      diffuse1.emissionColor);
-    mainProgram.SetUniform1f("sphere2.material.emissionStrength",   diffuse1.emissionStrength);
-    mainProgram.SetUniform1i("sphere2.material.isRefractive",       diffuse1.isRefractive);
-    mainProgram.SetUniform1f("sphere2.material.ior",                diffuse1.ior);
-    mainProgram.SetUniform1f("sphere2.material.refractionAmount",   diffuse1.refractionAmount);
-
-    Object::Sphere sphere3(glm::vec3(0.6f, 0.3f, -1.0f), 0.3f);
-    mainProgram.SetUniform3f("sphere3.position",                    sphere3.position);
-    mainProgram.SetUniform1f("sphere3.radius",                      sphere3.radius);
-    mainProgram.SetUniform3f("sphere3.material.baseColor",          glass1.baseColor);
-    mainProgram.SetUniform1f("sphere3.material.roughness",          glass1.roughness);
-    mainProgram.SetUniform3f("sphere3.material.emissionColor",      glass1.emissionColor);
-    mainProgram.SetUniform1f("sphere3.material.emissionStrength",   glass1.emissionStrength);
-    mainProgram.SetUniform1i("sphere3.material.isRefractive",       glass1.isRefractive);
-    mainProgram.SetUniform1f("sphere3.material.ior",                glass1.ior);
-    mainProgram.SetUniform1f("sphere3.material.refractionAmount",   glass1.refractionAmount);
-
-    Object::Sphere groundSphere(glm::vec3(0.0f, -1000.0f, -1.0f), 1000.0f);
-    mainProgram.SetUniform3f("ground.position",                     groundSphere.position);
-    mainProgram.SetUniform1f("ground.radius",                       groundSphere.radius);
-    mainProgram.SetUniform3f("ground.material.baseColor",           ground.baseColor);
-    mainProgram.SetUniform1f("ground.material.roughness",           ground.roughness);
-    mainProgram.SetUniform3f("ground.material.emissionColor",       ground.emissionColor);
-    mainProgram.SetUniform1f("ground.material.emissionStrength",    ground.emissionStrength);
-    mainProgram.SetUniform1i("ground.material.isRefractive",        ground.isRefractive);
-    mainProgram.SetUniform1f("ground.material.ior",                 ground.ior);
-
-    Object::Sphere lightSphere(glm::vec3(500.0f, 500.0f, -1.0f), 350.0f);
-    mainProgram.SetUniform3f("light.position",                     lightSphere.position);
-    mainProgram.SetUniform1f("light.radius",                       lightSphere.radius);
-    mainProgram.SetUniform3f("light.material.baseColor",           light.baseColor);
-    mainProgram.SetUniform1f("light.material.roughness",           light.roughness);
-    mainProgram.SetUniform3f("light.material.emissionColor",       light.emissionColor);
-    mainProgram.SetUniform1f("light.material.emissionStrength",    light.emissionStrength);
-    mainProgram.SetUniform1i("light.material.isRefractive",        light.isRefractive);
-    mainProgram.SetUniform1i("light.material.isLight",             light.isLight);
-    mainProgram.SetUniform1f("light.material.ior",                 light.ior);
-
-    mainProgram.Unuse();
+    Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.3f, -1.0f), 0.3f, metal1);
+    Sphere(mainProgram, "sphere2", glm::vec3(0.0f, 0.3f, -1.0f), 0.3f, diffuse1);
+    Sphere(mainProgram, "sphere3", glm::vec3(0.6f, 0.3f, -1.0f), 0.3f, glass1);
 
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;
@@ -271,16 +195,12 @@ int main(void)
     int currAccumPass = 0;
 
     glBindVertexArray(vao);
-    
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         prevFrameTime = glfwGetTime();
 
-        //if (glfwGetKey(window, GLFW_KEY_Q)) lightSphere.position.x -= 0.01f;
-        //if (glfwGetKey(window, GLFW_KEY_E)) lightSphere.position.x += 0.01f;
-        //mainProgram.SetUniform3f("light.position", lightSphere.position);
-        //std::cout << cam.velocity.x << ", " << cam.velocity.y << ", " << cam.velocity.z << std::endl;
         if (abs(cam.velocity.x) > 0.001 || abs(cam.velocity.y) > 0.001 || abs(cam.velocity.z) > 0.001)
         {
             currAccumPass = 0;
@@ -294,35 +214,23 @@ int main(void)
         if (glfwGetKey(window, GLFW_KEY_S)) cam.velocity.y -= 0.0025f;
         if (glfwGetKey(window, GLFW_KEY_A)) cam.velocity.x -= 0.0025f;
         if (glfwGetKey(window, GLFW_KEY_D)) cam.velocity.x += 0.0025f;
-        if (glfwGetKey(window, GLFW_KEY_UP))
-        {
-            cam.position.z -=   0.01f;
-            cam.forward -=      0.01f;
 
-            currAccumPass = 0;
+        if (glfwGetKey(window, GLFW_KEY_UP)) cam.velocity.z -= 0.0025f;
+        if (glfwGetKey(window, GLFW_KEY_DOWN)) cam.velocity.z += 0.0025f;
 
-            glBindFramebuffer(GL_FRAMEBUFFER, screenFboID);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
-        if (glfwGetKey(window, GLFW_KEY_DOWN))
-        {
-            cam.position.z +=   0.01f;
-            cam.forward +=      0.01f;
-
-            currAccumPass = 0;
-
-            glBindFramebuffer(GL_FRAMEBUFFER, screenFboID);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
+        if (glfwGetKey(window, GLFW_KEY_SPACE)) Sphere(mainProgram, "sphere3", cam.position, 0.3f, glass1);
 
         cam.velocity *= 0.8f;
         cam.position += cam.velocity;
+        cam.UpdateView();
 
-        mainProgram.Use();
         mainProgram.SetUniformCamera(cam);
-        mainProgram.Unuse();
+
+        Triangle(mainProgram, "tri2", 
+            glm::vec3(cam.position.x + 0.5, cam.position.y - 0.1,  cam.position.z), 
+            glm::vec3(cam.position.x - 0.5, cam.position.y - 0.1,  cam.position.z), 
+            glm::vec3(cam.position.x, cam.position.y + 0.6,  cam.position.z), 
+            light);
 
         /* Render here */
         mainProgram.Use();
@@ -341,7 +249,6 @@ int main(void)
 
         mainProgram.Use();
         currAccumPass++;
-        std::cout << currAccumPass << std::endl;
         mainProgram.SetUniform1f("currAccumPass", (float)currAccumPass);
         mainProgram.Unuse();
 
@@ -356,7 +263,6 @@ int main(void)
         mainProgram.Use();
         mainProgram.SetUniform1f("frameTime", deltaTime);
         mainProgram.Unuse();
-        std::cerr << "Frametime: " << deltaTime << " seconds" << std::endl;
     }
 
     glfwTerminate();

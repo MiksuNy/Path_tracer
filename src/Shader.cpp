@@ -42,10 +42,12 @@ void Program::SetUniform3f(const char* uName, glm::vec3 v)
 
 void Program::SetUniformCamera(Camera &cam)
 {
-	SetUniform3f("cam.position", cam.position);
-	SetUniform3f("cam.forward", cam.forward);
-	SetUniform3f("cam.up", cam.up);
-	SetUniform3f("cam.right", cam.right);
+	this->Use();
+	this->SetUniform3f("cam.position", cam.position);
+	this->SetUniform3f("cam.up", cam.up);
+	this->SetUniform3f("cam.right", cam.right);
+	this->SetUniform3f("cam.forward", cam.forward);
+	this->Unuse();
 }
 
 Program::~Program() { glDeleteProgram(ID); }
