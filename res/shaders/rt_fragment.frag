@@ -5,7 +5,7 @@
 
 #define PI 3.14159265
 #define TWO_PI 6.28318530
-#define INFINITY 1000000.0
+#define INFINITY 10000000.0
 
 // Random distribution functions: https://github.com/SebLague/Ray-Tracing/blob/main/Assets/Scripts/Shaders/RayTracing.shader
 
@@ -25,25 +25,29 @@ struct Camera { vec3 position; vec3 up; vec3 right; vec3 forward; };
 struct Material { vec3 baseColor; float roughness; vec3 emissionColor; float emissionStrength; float ior; float refractionAmount; bool isRefractive; bool isLight; };
 struct Sphere { vec3 position; float radius; Material material; };
 struct Triangle { vec3 p1; vec3 p2; vec3 p3; Material material; };
+struct Mesh { int numVertices; int numIndices; };
 struct HitInfo { vec3 hitPoint; vec3 hitNormal; float hitDist; bool hasHit; Material hitMaterial; };
+
+uniform samplerBuffer allVertices;
+uniform isamplerBuffer allIndices;
 
 uniform Camera cam;
 
 uniform Sphere sphere1;
 uniform Sphere sphere2;
 uniform Sphere sphere3;
-uniform Sphere ground;
-uniform Sphere light;
+uniform Sphere sunSphere;
 
 Sphere spheres[] = {
-	sphere1, sphere2, sphere3
+	sphere1, sphere2, sphere3, sunSphere
 };
 
 uniform Triangle tri1;
 uniform Triangle tri2;
+uniform Triangle tri3;
 
 Triangle tris[] = {
-	tri1, tri2
+	tri1, tri2, tri3
 };
 
 uint NextRandom(inout uint state) {
@@ -67,7 +71,7 @@ vec3 RandomDirection(vec3 normal, inout uint state) {
 	float x = RandomValueND(state);
 	float y = RandomValueND(state);
 	float z = RandomValueND(state);
-	return vec3(x, y, z);
+	return normalize(vec3(x, y, z) + normal);
 }
 
 vec3 RandomInHemisphere(vec3 normal, inout uint state) {
@@ -162,6 +166,23 @@ HitInfo CalculateRay(in Ray ray) {
 	HitInfo closestHit;
 	closestHit.hitDist = INFINITY;
 
+	for (int i = 0; i < 8 - 2; i++) {
+		Triangle tempTri;
+		ivec3 tempIndices = texelFetch(allIndices, i).xyz;
+		tempTri.p1 = texelFetch(allVertices, tempIndices.x).xyz;
+		tempTri.p2 = texelFetch(allVertices, tempIndices.y).xyz;
+		tempTri.p3 = texelFetch(allVertices, tempIndices.z).xyz;
+		tempTri.material = sphere1.material;
+
+		HitInfo tempHit = HitTriangle(tempTri, ray);
+		tempHit.hitMaterial = tempTri.material;
+
+		if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) {
+			closestHit = tempHit;
+			closestHit.hitMaterial = tempHit.hitMaterial;
+		}
+	}
+
 	for (int i = 0; i < tris.length(); i++) {
 		HitInfo tempHit = HitTriangle(tris[i], ray);
 		tempHit.hitMaterial = tris[i].material;
@@ -189,7 +210,7 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 	vec3 incomingLight = vec3(0);
 	vec3 emittedLight = vec3(0);
 
-	vec3 skyColor = vec3(0.8, 0.9, 1.0);
+	vec3 skyColor = vec3(1);
 	float skyIntensity = 0.0;
 
 	int currBounces = 0;
@@ -203,17 +224,14 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 
 			if (hitInfo.hitMaterial.isRefractive) {
 				if (RandomValue(state) < hitInfo.hitMaterial.refractionAmount) {
-					ray.direction = refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior) - RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness;
-					if (hitInfo.hasHit) {
-						ray.direction = refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior) - RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness;
-					}
+					ray.direction = normalize(refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior) - RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness);
 				} else {
-					ray.direction = reflect(ray.direction, hitInfo.hitNormal) + RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness;
+					ray.direction = normalize(mix(reflect(ray.direction, hitInfo.hitNormal), RandomInHemisphere(hitInfo.hitNormal, state), hitInfo.hitMaterial.roughness));
 				}
 			} else if (hitInfo.hitMaterial.isLight) {
-				ray.direction = hitInfo.hitNormal;
+				ray.direction = normalize(RandomInHemisphere(hitInfo.hitNormal, state));
 			} else {
-				ray.direction = reflect(ray.direction, hitInfo.hitNormal) + RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness;
+				ray.direction = normalize(mix(reflect(ray.direction, hitInfo.hitNormal), RandomInHemisphere(hitInfo.hitNormal, state), hitInfo.hitMaterial.roughness));
 			}
 
 			emittedLight = hitInfo.hitMaterial.emissionColor * hitInfo.hitMaterial.emissionStrength;
@@ -227,7 +245,28 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 			incomingLight += rayColor;
 		}
 	}
-	return incomingLight /= currBounces;
+	return incomingLight / currBounces;
+}
+
+vec4 DownSampleFrame(sampler2D uniformSampler, float offset)
+{
+    vec2 pixelOffset = vec2(1.0f/textureSize(uniformSampler, 0).x, 1.0f/textureSize(uniformSampler, 0).y);
+
+    vec3 downScaleColor = vec3(0.0f);
+    {
+        float Pixels = offset;
+        float dx = (1.0 / Pixels);
+        float dy = (textureSize(uniformSampler, 0).x / textureSize(uniformSampler, 0).y / Pixels);
+        vec2 Coord = vec2(dx * floor(accumTexCoords.s / dx),
+                          dy * floor(accumTexCoords.t / dy));
+
+        downScaleColor += texture(uniformSampler, vec2(Coord.x - -pixelOffset.x, Coord.y)).xyz;
+        downScaleColor += texture(uniformSampler, vec2(Coord.x + -pixelOffset.x, Coord.y)).xyz;
+        downScaleColor += texture(uniformSampler, vec2(Coord.x, Coord.y - pixelOffset.y)).xyz;
+        downScaleColor += texture(uniformSampler, vec2(Coord.x, Coord.y + pixelOffset.y)).xyz;
+	    downScaleColor *= 0.25f;
+    }
+    return (vec4(downScaleColor, 1.0f));
 }
 
 void main() {
@@ -236,19 +275,21 @@ void main() {
 
 	Ray ray;
 	ray.origin = cam.position;
-	ray.direction = vec3(vec2(viewportCenter.x * 16/9, viewportCenter.y) + cam.position.xy, cam.forward.z) - ray.origin;
+	ray.direction = vec3(vec2(viewportCenter.x * 16/9, viewportCenter.y) + cam.forward.xy, cam.forward.z) - ray.origin;
 
-	vec3 accumColor = texture(accumTexture, accumTexCoords).xyz;
+	vec3 accumColor = vec3(0);
 	vec3 rayTraceColor = vec3(0);
 
 	int maxBounces = 18;
-	int samples = 1;
-	for (int i = 0; i < samples; i++) {
+	int spp = 2;
+	for (int i = 0; i < spp; ++i) {
 		rayTraceColor += RayTrace(ray, maxBounces, rngState);
 	}
+	rayTraceColor /= spp;
 
-	rayTraceColor /= samples;
-	accumColor += rayTraceColor;
+
+	float weight = 1.0 / (currAccumPass + 1);
+	accumColor = texture(accumTexture, accumTexCoords).xyz * (1 - weight) + rayTraceColor * weight;
 
 	fragColor = vec4(accumColor, 1.0);
 }

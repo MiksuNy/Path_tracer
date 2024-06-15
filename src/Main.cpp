@@ -78,9 +78,9 @@ int main(void)
     Program accumProgram;
 
     rayTraceVertex.Create(GL_VERTEX_SHADER);
-    rayTraceVertex.Parse("src/res/shaders/rt_vertex.vert");
+    rayTraceVertex.Parse("res/shaders/rt_vertex.vert");
     rayTraceFragment.Create(GL_FRAGMENT_SHADER);
-    rayTraceFragment.Parse("src/res/shaders/rt_fragment.frag");
+    rayTraceFragment.Parse("res/shaders/rt_fragment.frag");
 
     mainProgram.Create();
     mainProgram.Attach(rayTraceVertex);
@@ -88,9 +88,9 @@ int main(void)
     mainProgram.Link();
 
     accumVertex.Create(GL_VERTEX_SHADER);
-    accumVertex.Parse("src/res/shaders/accum_vertex.vert");
+    accumVertex.Parse("res/shaders/accum_vertex.vert");
     accumFragment.Create(GL_FRAGMENT_SHADER);
-    accumFragment.Parse("src/res/shaders/accum_fragment.frag");
+    accumFragment.Parse("res/shaders/accum_fragment.frag");
 
     accumProgram.Create();
     accumProgram.Attach(accumVertex);
@@ -134,6 +134,8 @@ int main(void)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCREEN_W, SCREEN_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, accumTexID, 0);
@@ -146,7 +148,24 @@ int main(void)
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    Mesh cubeMesh("src/res/meshes/default_cube.obj");
+    Mesh cubeMesh("res/meshes/cube_no_normals.obj");
+
+    GLuint verticesBuffer, indicesBuffer;
+
+    glGenBuffers(1, &verticesBuffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, verticesBuffer);
+    glBufferData(GL_UNIFORM_BUFFER, cubeMesh.vertices.size() * sizeof(float), (void*)cubeMesh.vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    glGenBuffers(1, &indicesBuffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, indicesBuffer);
+    glBufferData(GL_UNIFORM_BUFFER, cubeMesh.indices.size() * sizeof(unsigned int), (void*)cubeMesh.indices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    mainProgram.Use();
+    glUniform1i(glGetUniformLocation(mainProgram.ID, "allVertices"), verticesBuffer);
+    glUniform1i(glGetUniformLocation(mainProgram.ID, "allIndices"), indicesBuffer);
+    mainProgram.Unuse();
 
     Camera cam(glm::vec3(0, 0, 1));
 
@@ -162,32 +181,52 @@ int main(void)
     diffuse1.emissionStrength = 0.0f;
     diffuse1.roughness = 1.0f;
 
+    Material diffuse2;
+    diffuse2.baseColor = glm::vec3(0.1, 1.0, 0.1);
+    diffuse2.emissionColor = glm::vec3(0);
+    diffuse2.emissionStrength = 0.0f;
+    diffuse2.roughness = 1.0f;
+
+    Material diffuse3;
+    diffuse3.baseColor = glm::vec3(1.0, 0.1, 0.1);
+    diffuse3.emissionColor = glm::vec3(0);
+    diffuse3.emissionStrength = 0.0f;
+    diffuse3.roughness = 1.0f;
+
     Material glass1;
     glass1.baseColor = glm::vec3(1.0, 0.1, 0.1);
     glass1.emissionColor = glm::vec3(0);
     glass1.emissionStrength = 0.0f;
-    glass1.roughness = 0.01f;
+    glass1.roughness = 0.05f;
     glass1.isRefractive = true;
-    glass1.ior = 0.9f;
+    glass1.ior = 0.97f;
     glass1.refractionAmount = 0.98f;
 
     Material ground;
-    ground.baseColor = glm::vec3(1);
+    ground.baseColor = glm::vec3(0.9);
     ground.emissionColor = glm::vec3(0);
     ground.emissionStrength = 0.0f;
-    ground.roughness = 0.99f;
+    ground.roughness = 1.0f;
 
     Material light;
     light.baseColor = glm::vec3(1);
-    light.emissionColor = glm::vec3(0.3, 0.76, 0.2);
-    light.emissionStrength = 1.0f;
+    light.emissionColor = glm::vec3(1);
+    light.emissionStrength = 0.1f;
     light.isLight = true;
 
-    Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
+    Material sunLight;
+    sunLight.baseColor = glm::vec3(1);
+    sunLight.emissionColor = glm::vec3(1);
+    sunLight.emissionStrength = 300.0f;
+    sunLight.isLight = true;
 
-    Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.3f, -1.0f), 0.3f, metal1);
-    Sphere(mainProgram, "sphere2", glm::vec3(0.0f, 0.3f, -1.0f), 0.3f, diffuse1);
-    Sphere(mainProgram, "sphere3", glm::vec3(0.6f, 0.3f, -1.0f), 0.3f, glass1);
+    Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
+    //Triangle(mainProgram, "tri2", glm::vec3(-1.0, 0.0, -6.0), glm::vec3(1.0, 0.0, -6.0), glm::vec3(0.0, 3.0, -6.0), light);
+
+    Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.3f, -1.0f), 0.3f, diffuse1);
+    Sphere(mainProgram, "sphere2", glm::vec3(0.0f, 0.3f, -1.0f),  0.3f, metal1);
+    Sphere(mainProgram, "sphere3", glm::vec3(0.6f, 0.3f, -1.0f),  0.3f, glass1);
+    Sphere(mainProgram, "sunSphere", glm::vec3(10000.0f, 10000.0f, -1.0f), 5000.0f, sunLight);
 
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;
@@ -195,6 +234,8 @@ int main(void)
     int currAccumPass = 0;
 
     glBindVertexArray(vao);
+
+    glm::vec3 tempPos = glm::vec3(0);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -226,11 +267,13 @@ int main(void)
 
         mainProgram.SetUniformCamera(cam);
 
-        Triangle(mainProgram, "tri2", 
-            glm::vec3(cam.position.x + 0.5, cam.position.y - 0.1,  cam.position.z), 
-            glm::vec3(cam.position.x - 0.5, cam.position.y - 0.1,  cam.position.z), 
-            glm::vec3(cam.position.x, cam.position.y + 0.6,  cam.position.z), 
-            light);
+        // Camera light
+
+        //Triangle(mainProgram, "tri3", 
+        //    glm::vec3(cam.position.x + 0.3, cam.position.y - 0.1,  cam.position.z), 
+        //    glm::vec3(cam.position.x - 0.3, cam.position.y - 0.1,  cam.position.z), 
+        //    glm::vec3(cam.position.x, cam.position.y + 0.6,  cam.position.z), 
+        //    light);
 
         /* Render here */
         mainProgram.Use();
@@ -247,8 +290,8 @@ int main(void)
         glBindTexture(GL_TEXTURE_2D, 0);
         accumProgram.Unuse();
 
-        mainProgram.Use();
         currAccumPass++;
+        mainProgram.Use();
         mainProgram.SetUniform1f("currAccumPass", (float)currAccumPass);
         mainProgram.Unuse();
 

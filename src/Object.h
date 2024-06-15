@@ -41,17 +41,8 @@ public:
 struct Mesh
 {
 public:
-    struct MeshData
-    {
-    public:
-        std::vector<glm::vec3> vertices;
-        std::vector<glm::vec3> normals;
-
-        std::vector<unsigned int> vertexIndices;
-        std::vector<unsigned int> normalIndices;
-    };
-
-    MeshData data;
+    std::vector<float> vertices;
+    std::vector<int> indices;
 
     Mesh(const char* filePath);
 

@@ -60,31 +60,23 @@ void Mesh::Load(const char* filePath)
 		{
 			if (line.substr(0, 2) == "v ")
 			{
-				glm::vec3 tempVertex;
-				sscanf_s(line.c_str(), "v %f %f %f", &tempVertex.x, &tempVertex.y, &tempVertex.z); // vertices
+				glm::highp_vec4 vertex;
+				sscanf_s(line.c_str(), "v %f %f %f", &vertex.x, &vertex.y, &vertex.z); // vertices
+				vertex.w = 1.0f;
 
-				data.vertices.push_back(tempVertex);
-			}
-			else if (line.substr(0, 2) == "vn")
-			{
-				glm::vec3 tempNormal;
-				sscanf_s(line.c_str(), "vn %f %f %f", &tempNormal.x, &tempNormal.y, &tempNormal.z); // normals
-
-				data.normals.push_back(tempNormal);
+				vertices.push_back(vertex.x);
+				vertices.push_back(vertex.y);
+				vertices.push_back(vertex.z);
+				vertices.push_back(vertex.w);
 			}
 			else if (line.substr(0, 2) == "f ") // indices
 			{
-				unsigned int av, an, bv, bn, cv, cn;
-				sscanf_s(line.c_str(), "f %u//%u %u//%u %u//%u", &av, &an, &bv, &bn, &cv, &cn);
+				int i1, i2, i3;
+				sscanf_s(line.c_str(), "f %i %i %i", &i1, &i2, &i3);
 
-				data.vertexIndices.push_back(av - 1u);
-				data.normalIndices.push_back(an - 1u);
-
-				data.vertexIndices.push_back(bv - 1u);
-				data.normalIndices.push_back(bn - 1u);
-
-				data.vertexIndices.push_back(cv - 1u);
-				data.normalIndices.push_back(cn - 1u);
+				indices.push_back(i1 - 1);
+				indices.push_back(i2 - 1);
+				indices.push_back(i3 - 1);
 			}
 		}
 
@@ -92,6 +84,6 @@ void Mesh::Load(const char* filePath)
 
 		double timeAfterLoad = glfwGetTime();
 		std::cout << "\n\n\n\t'" << filePath << "' took " << timeAfterLoad - timeBeforeLoad << " seconds to load" << "\n";
-		std::cout << "\t'" << filePath << "' has " << data.vertices.size() << " vertices" << "\n\n\n\n\n";
+		std::cout << "\t'" << filePath << "' has " << vertices.size() / 4 << " vertices" << "\n\n\n\n\n";
 	}
 }
