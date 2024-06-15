@@ -815,5 +815,6 @@
     <None Include="src\res\shaders\rt_vertex.vert" />
     <None Include="src\res\shaders\accum_fragment.frag" />
     <None Include="src\res\shaders\accum_vertex.vert" />
+    <None Include="README.md" />
   </ItemGroup>
 </Project>

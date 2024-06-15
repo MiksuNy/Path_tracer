@@ -170,7 +170,7 @@ int main(void)
     Camera cam(glm::vec3(0, 0, 1));
 
     Material metal1;
-    metal1.baseColor = glm::vec3(0.1, 1.0, 0.1);
+    metal1.baseColor = glm::vec3(1);
     metal1.emissionColor = glm::vec3(0);
     metal1.emissionStrength = 0.0f;
     metal1.roughness = 0.01f;
@@ -211,17 +211,17 @@ int main(void)
     Material light;
     light.baseColor = glm::vec3(1);
     light.emissionColor = glm::vec3(1);
-    light.emissionStrength = 0.1f;
+    light.emissionStrength = 100.0f;
     light.isLight = true;
 
     Material sunLight;
     sunLight.baseColor = glm::vec3(1);
     sunLight.emissionColor = glm::vec3(1);
-    sunLight.emissionStrength = 300.0f;
+    sunLight.emissionStrength = 25.0f;
     sunLight.isLight = true;
 
     Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
-    //Triangle(mainProgram, "tri2", glm::vec3(-1.0, 0.0, -6.0), glm::vec3(1.0, 0.0, -6.0), glm::vec3(0.0, 3.0, -6.0), light);
+    Triangle(mainProgram, "tri2", glm::vec3(-1.0, 0.0, -3.0), glm::vec3(1.0, 0.0, -3.0), glm::vec3(0.0, 3.0, -3.0), metal1);
 
     Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.3f, -1.0f), 0.3f, diffuse1);
     Sphere(mainProgram, "sphere2", glm::vec3(0.0f, 0.3f, -1.0f),  0.3f, metal1);

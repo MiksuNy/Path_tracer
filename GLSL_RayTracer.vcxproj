@@ -413,6 +413,7 @@
     <None Include="dependencies\glm\gtx\vector_angle.inl" />
     <None Include="dependencies\glm\gtx\vector_query.inl" />
     <None Include="dependencies\glm\gtx\wrap.inl" />
+    <None Include="README.md" />
     <None Include="src\res\shaders\accum_fragment.frag" />
     <None Include="src\res\shaders\accum_vertex.vert" />
     <None Include="src\res\shaders\rt_fragment.frag" />

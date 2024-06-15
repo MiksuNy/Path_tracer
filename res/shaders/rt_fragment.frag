@@ -222,6 +222,11 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 
 			ray.origin = hitInfo.hitPoint;
 
+			float test = max(rayColor.r, max(rayColor.g, rayColor.b));
+			if (RandomValue(state) > test) {
+				break;
+			}
+
 			if (hitInfo.hitMaterial.isRefractive) {
 				if (RandomValue(state) < hitInfo.hitMaterial.refractionAmount) {
 					ray.direction = normalize(refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior) - RandomInHemisphere(hitInfo.hitNormal, state) * hitInfo.hitMaterial.roughness);
@@ -229,7 +234,8 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 					ray.direction = normalize(mix(reflect(ray.direction, hitInfo.hitNormal), RandomInHemisphere(hitInfo.hitNormal, state), hitInfo.hitMaterial.roughness));
 				}
 			} else if (hitInfo.hitMaterial.isLight) {
-				ray.direction = normalize(RandomInHemisphere(hitInfo.hitNormal, state));
+				ray.origin = hitInfo.hitPoint + ray.direction * 0.001;
+				continue;
 			} else {
 				ray.direction = normalize(mix(reflect(ray.direction, hitInfo.hitNormal), RandomInHemisphere(hitInfo.hitNormal, state), hitInfo.hitMaterial.roughness));
 			}
@@ -243,6 +249,7 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 			emittedLight = skyColor * skyIntensity;
 			rayColor *= emittedLight;
 			incomingLight += rayColor;
+			break;
 		}
 	}
 	return incomingLight / currBounces;
@@ -281,7 +288,7 @@ void main() {
 	vec3 rayTraceColor = vec3(0);
 
 	int maxBounces = 18;
-	int spp = 2;
+	int spp = 6;
 	for (int i = 0; i < spp; ++i) {
 		rayTraceColor += RayTrace(ray, maxBounces, rngState);
 	}
