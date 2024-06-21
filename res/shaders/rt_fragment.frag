@@ -25,11 +25,14 @@ struct Camera { vec3 position; vec3 up; vec3 right; vec3 forward; };
 struct Material { vec3 baseColor; float roughness; vec3 emissionColor; float emissionStrength; float ior; float refractionAmount; bool isRefractive; bool isLight; };
 struct Sphere { vec3 position; float radius; Material material; };
 struct Triangle { vec3 p1; vec3 p2; vec3 p3; Material material; };
-struct Mesh { int numVertices; int numIndices; };
 struct HitInfo { vec3 hitPoint; vec3 hitNormal; float hitDist; bool hasHit; Material hitMaterial; };
 
-uniform samplerBuffer allVertices;
-uniform isamplerBuffer allIndices;
+layout (std430, binding = 1) buffer vertexSSBO {
+	vec4 vertices[];
+};
+layout (std430, binding = 2) buffer indexSSBO {
+	ivec4 indices[];
+};
 
 uniform Camera cam;
 
@@ -105,16 +108,11 @@ HitInfo HitSphere(vec3 center, float radius, Ray ray) {
 
 	float t = (-halfB - sqrt(discriminant)) / a;
 
-    if (t > 0.00001) {
-		tempHitInfo.hasHit = true;
-		tempHitInfo.hitPoint = ray.origin + ray.direction * t;
-		tempHitInfo.hitDist = t;
-		tempHitInfo.hitNormal = normalize(tempHitInfo.hitPoint - center);
-		return tempHitInfo;
-	} else {
-		tempHitInfo.hasHit = false;
-		return tempHitInfo;
-	}
+	tempHitInfo.hasHit = t > 0.00001;
+	tempHitInfo.hitPoint = ray.origin + ray.direction * t;
+	tempHitInfo.hitDist = t;
+	tempHitInfo.hitNormal = normalize(tempHitInfo.hitPoint - center);
+	return tempHitInfo;
 }
 
 // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
@@ -125,53 +123,34 @@ HitInfo HitTriangle(Triangle tri, in Ray ray) {
 	vec3 edge2 = tri.p3 - tri.p1;
 	vec3 rayCrossE2 = cross(ray.direction, edge2);
 	float det = dot(edge1, rayCrossE2);
-	
-	if (det < 0.00001) {
-		tempHitInfo.hasHit = false;
-		return tempHitInfo;
-	}
 
 	float invDet = 1.0 / det;
 	vec3 s = ray.origin - tri.p1;
 	float u = invDet * dot(s, rayCrossE2);
 
-	if (u < 0 || u > 1) {
-		tempHitInfo.hasHit = false;
-		return tempHitInfo;
-	}
-
 	vec3 sCrossE1 = cross(s, edge1);
 	float v = invDet * dot(ray.direction, sCrossE1);
 
-	if (v < 0 || u + v > 1) {
-		tempHitInfo.hasHit = false;
-		return tempHitInfo;
-	}
-
 	float t = invDet * dot(edge2, sCrossE1);
 
-	if (t > 0.00001) {
-		tempHitInfo.hasHit = true;
-		tempHitInfo.hitPoint = Vec3At(ray, t);
-		tempHitInfo.hitDist = t;
-		tempHitInfo.hitNormal = normalize(cross(edge1, edge2));
-		return tempHitInfo;
-	} else {
-		tempHitInfo.hasHit = false;
-		return tempHitInfo;
-	}
+	tempHitInfo.hasHit = t > 0.00001 && !(det < 0.00001) && !(u < 0 || u > 1) && !(v < 0 || u + v > 1);
+	tempHitInfo.hitPoint = Vec3At(ray, t);
+	tempHitInfo.hitDist = t;
+	tempHitInfo.hitNormal = normalize(cross(edge1, edge2));
+	return tempHitInfo;
 }
 
 HitInfo CalculateRay(in Ray ray) {
 	HitInfo closestHit;
 	closestHit.hitDist = INFINITY;
 
-	for (int i = 0; i < 8 - 2; i++) {
+	for (int i = 0; i < indices.length(); i++) {
 		Triangle tempTri;
-		ivec3 tempIndices = texelFetch(allIndices, i).xyz;
-		tempTri.p1 = texelFetch(allVertices, tempIndices.x).xyz;
-		tempTri.p2 = texelFetch(allVertices, tempIndices.y).xyz;
-		tempTri.p3 = texelFetch(allVertices, tempIndices.z).xyz;
+
+		tempTri.p1 = vertices[indices[i].x].xyz;
+		tempTri.p2 = vertices[indices[i].y].xyz;
+		tempTri.p3 = vertices[indices[i].z].xyz;
+
 		tempTri.material = sphere1.material;
 
 		HitInfo tempHit = HitTriangle(tempTri, ray);

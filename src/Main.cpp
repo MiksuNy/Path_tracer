@@ -148,24 +148,7 @@ int main(void)
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    Mesh cubeMesh("res/meshes/cube_no_normals.obj");
 
-    GLuint verticesBuffer, indicesBuffer;
-
-    glGenBuffers(1, &verticesBuffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, verticesBuffer);
-    glBufferData(GL_UNIFORM_BUFFER, cubeMesh.vertices.size() * sizeof(float), (void*)cubeMesh.vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    glGenBuffers(1, &indicesBuffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, indicesBuffer);
-    glBufferData(GL_UNIFORM_BUFFER, cubeMesh.indices.size() * sizeof(unsigned int), (void*)cubeMesh.indices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    mainProgram.Use();
-    glUniform1i(glGetUniformLocation(mainProgram.ID, "allVertices"), verticesBuffer);
-    glUniform1i(glGetUniformLocation(mainProgram.ID, "allIndices"), indicesBuffer);
-    mainProgram.Unuse();
 
     Camera cam(glm::vec3(0, 0, 1));
 
@@ -219,6 +202,21 @@ int main(void)
     sunLight.emissionColor = glm::vec3(1);
     sunLight.emissionStrength = 25.0f;
     sunLight.isLight = true;
+
+    Mesh mesh("res/meshes/cow_no_normals.obj");
+
+    GLuint vertexSSBO, indexSSBO;
+
+    glGenBuffers(1, &vertexSSBO);
+    glGenBuffers(1, &indexSSBO);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, vertexSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.vertices.size() * sizeof(float), mesh.vertices.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, indexSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.indices.size() * sizeof(int), mesh.indices.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
 
     Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
     Triangle(mainProgram, "tri2", glm::vec3(-1.0, 0.0, -3.0), glm::vec3(1.0, 0.0, -3.0), glm::vec3(0.0, 3.0, -3.0), metal1);

@@ -60,23 +60,25 @@ void Mesh::Load(const char* filePath)
 		{
 			if (line.substr(0, 2) == "v ")
 			{
-				glm::highp_vec4 vertex;
-				sscanf_s(line.c_str(), "v %f %f %f", &vertex.x, &vertex.y, &vertex.z); // vertices
-				vertex.w = 1.0f;
+				float x, y, z, w;
+				sscanf_s(line.c_str(), "v %f %f %f", &x, &y, &z); // vertices
+				w = 1.0f;
 
-				vertices.push_back(vertex.x);
-				vertices.push_back(vertex.y);
-				vertices.push_back(vertex.z);
-				vertices.push_back(vertex.w);
+				vertices.push_back(x);
+				vertices.push_back(y);
+				vertices.push_back(z);
+				vertices.push_back(w);
 			}
 			else if (line.substr(0, 2) == "f ") // indices
 			{
-				int i1, i2, i3;
+				int i1, i2, i3, i4;
 				sscanf_s(line.c_str(), "f %i %i %i", &i1, &i2, &i3);
+				i4 = 0;
 
 				indices.push_back(i1 - 1);
 				indices.push_back(i2 - 1);
 				indices.push_back(i3 - 1);
+				indices.push_back(i4);
 			}
 		}
 
