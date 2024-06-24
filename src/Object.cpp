@@ -12,7 +12,6 @@ Sphere::Sphere(struct Program& program, const char* name, glm::vec3 pos, float r
 	program.SetUniform1f(std::string(name).append(".material.roughness").c_str(),			material.roughness);
 	program.SetUniform3f(std::string(name).append(".material.emissionColor").c_str(),		material.emissionColor);
 	program.SetUniform1f(std::string(name).append(".material.emissionStrength").c_str(),	material.emissionStrength);
-	program.SetUniform1i(std::string(name).append(".material.isRefractive").c_str(),		material.isRefractive);
 	program.SetUniform1f(std::string(name).append(".material.ior").c_str(),					material.ior);
 	program.SetUniform1f(std::string(name).append(".material.refractionAmount").c_str(),	material.refractionAmount);
 	program.Unuse();
@@ -32,7 +31,6 @@ Triangle::Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm
 	program.SetUniform1f(std::string(name).append(".material.roughness").c_str(),			material.roughness);
 	program.SetUniform3f(std::string(name).append(".material.emissionColor").c_str(),		material.emissionColor);
 	program.SetUniform1f(std::string(name).append(".material.emissionStrength").c_str(),	material.emissionStrength);
-	program.SetUniform1i(std::string(name).append(".material.isRefractive").c_str(),		material.isRefractive);
 	program.SetUniform1f(std::string(name).append(".material.ior").c_str(),					material.ior);
 	program.SetUniform1f(std::string(name).append(".material.refractionAmount").c_str(),	material.refractionAmount);
 	program.Unuse();
@@ -41,6 +39,7 @@ Triangle::Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm
 Mesh::Mesh(const char* filePath)
 {
 	this->Load(filePath);
+	this->GenBoundingBox();
 }
 
 void Mesh::Load(const char* filePath)
@@ -86,6 +85,36 @@ void Mesh::Load(const char* filePath)
 
 		double timeAfterLoad = glfwGetTime();
 		std::cout << "\n\n\n\t'" << filePath << "' took " << timeAfterLoad - timeBeforeLoad << " seconds to load" << "\n";
-		std::cout << "\t'" << filePath << "' has " << vertices.size() / 4 << " vertices" << "\n\n\n\n\n";
+		std::cout << "\t'" << filePath << "' has " << indices.size() / 4 << " triangles" << "\n\n\n\n\n";
 	}
+}
+
+void Mesh::GenBoundingBox()
+{
+	float maxX = 0.0f, maxY = 0.0f, maxZ = 0.0f;
+	float minX = 0.0f, minY = 0.0f, minZ = 0.0f;
+	for (int i = 0; i < this->vertices.size() - 4; i+=4)
+	{
+		if (this->vertices[i] > maxX) maxX = this->vertices[i];
+		if (this->vertices[i + 1] > maxY) maxY = this->vertices[i + 1];
+		if (this->vertices[i + 2] > maxZ) maxZ = this->vertices[i + 2];
+	}
+	for (int i = 0; i < this->vertices.size() - 4; i += 4)
+	{
+		if (this->vertices[i] < minX) minX = this->vertices[i];
+		if (this->vertices[i + 1] < minY) minY = this->vertices[i + 1];
+		if (this->vertices[i + 2] < minZ) minZ = this->vertices[i + 2];
+	}
+	this->boundsMax[0] = maxX;
+	this->boundsMax[1] = maxY;
+	this->boundsMax[2] = maxZ;
+	this->boundsMax[3] = 1.0f;
+
+	this->boundsMin[0] = minX;
+	this->boundsMin[1] = minY;
+	this->boundsMin[2] = minZ;
+	this->boundsMin[3] = 1.0f;
+
+	std::cout << "\n\tBounds min: " << "x: " << boundsMin[0] << ", y: " << boundsMin[1] << ", z: " << boundsMin[2] << "\n";
+	std::cout << "\tBounds max: " << "x: " << boundsMax[0] << ", y: " << boundsMax[1] << ", z: " << boundsMax[2] << "\n\n\n\n\n";
 }

@@ -14,11 +14,9 @@ struct Material
 
     glm::vec3 emissionColor = glm::vec3(0);
     float emissionStrength = 0.0f;
-    bool isLight = false;
 
     float ior = 0.0f;
     float refractionAmount = 0.0f;
-    bool isRefractive = false;
 };
 
 struct Sphere
@@ -44,8 +42,11 @@ public:
     std::vector<float> vertices;
     std::vector<int> indices;
 
+    float boundsMin[4], boundsMax[4];
+
     Mesh(const char* filePath);
 
 private:
     void Load(const char* filePath);
+    void GenBoundingBox();
 };
