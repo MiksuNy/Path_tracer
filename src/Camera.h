@@ -5,9 +5,7 @@
 struct Camera
 {
 public:
-	glm::vec3 position, velocity, up, right, forward;
+	glm::vec3 position, velocity;
 
 	Camera(glm::vec3 position);
-
-	void UpdateView();
 };

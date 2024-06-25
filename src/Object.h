@@ -31,9 +31,18 @@ public:
 struct Triangle
 {
 public:
-    glm::vec3 p1, p2, p3;
+    glm::vec4 p1, p2, p3;
 
+    Triangle();
     Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, struct Material& material);
+};
+
+struct Node
+{
+    float boundsMin[4] = { 0.0f }, boundsMax[4] = { 0.0f };
+    int firstVertexIndex = 0;
+    int numVertices = 0;
+    int padding[2] = { 0 };
 };
 
 struct Mesh
@@ -42,11 +51,15 @@ public:
     std::vector<float> vertices;
     std::vector<int> indices;
 
-    float boundsMin[4], boundsMax[4];
+    float boundsMin[4] = { 0.0f }, boundsMax[4] = { 0.0f };
 
+    struct Node childA;
+    struct Node childB;
+    
     Mesh(const char* filePath);
 
 private:
     void Load(const char* filePath);
     void GenBoundingBox();
+    void GenBVH();
 };

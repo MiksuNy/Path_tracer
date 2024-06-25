@@ -44,9 +44,6 @@ void Program::SetUniformCamera(Camera &cam)
 {
 	this->Use();
 	this->SetUniform3f("cam.position", cam.position);
-	this->SetUniform3f("cam.up", cam.up);
-	this->SetUniform3f("cam.right", cam.right);
-	this->SetUniform3f("cam.forward", cam.forward);
 	this->Unuse();
 }
 

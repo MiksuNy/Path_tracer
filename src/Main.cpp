@@ -206,7 +206,7 @@ int main()
     sunLight.emissionColor = glm::vec3(0.97, 0.86, 0.81);
     sunLight.emissionStrength = 10.0f;
 
-    Mesh mesh("res/meshes/bunny1.obj");
+    Mesh mesh("res/meshes/dragon1.obj");
 
     GLuint vertexSSBO, indexSSBO, aabbSSBO;
 
@@ -225,19 +225,21 @@ int main()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, aabbSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 8, NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, (sizeof(float) * 8) + sizeof(Node) * 2, NULL, GL_DYNAMIC_DRAW);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4 * sizeof(float), mesh.boundsMin);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4 * sizeof(float), 4 * sizeof(float), mesh.boundsMax);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8 * sizeof(float), sizeof(Node), &mesh.childA);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8 * sizeof(float) + sizeof(Node), sizeof(Node), &mesh.childB);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, aabbSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
     //Triangle(mainProgram, "tri2", glm::vec3(-1.0, 0.0 - 1000, -3.0), glm::vec3(1.0, 0.0 - 1000, -3.0), glm::vec3(0.0, 3.0 - 1000, -3.0), diffuse1);
     
-    //Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.3f, .0f), 0.3f, diffuse1);
+    //Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.1f, .0f), 0.1f, light);
     //Sphere(mainProgram, "sphere2", glm::vec3(0.0f, 0.3f, .0f),  0.3f, metal1);
-    //Sphere(mainProgram, "sphere3", glm::vec3(0.6f, 0.3f, .0f),  0.3f, glass1);
-    //Sphere(mainProgram, "sunSphere", glm::vec3(10000.0f, 10000.0f, -1.0f), 3000.0f, sunLight);
+    //Sphere(mainProgram, "sphere3", glm::vec3(0.6f, 0.1f, .0f),  0.1f, light);
+    Sphere(mainProgram, "sunSphere", glm::vec3(10000.0f, 10000.0f, -1.0f), 4000.0f, sunLight);
 
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;
@@ -250,7 +252,7 @@ int main()
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        if (abs(cam.velocity.x) > 0.001 || abs(cam.velocity.y) > 0.001 || abs(cam.velocity.z) > 0.001)
+        if (abs(cam.velocity.x) > 0.0001 || abs(cam.velocity.y) > 0.0001 || abs(cam.velocity.z) > 0.0001)
         {
             currAccumPass = 0;
 
@@ -269,7 +271,6 @@ int main()
 
         cam.velocity *= 0.8f;
         cam.position += cam.velocity;
-        cam.UpdateView();
         mainProgram.SetUniformCamera(cam);
 
         /* Render here */
@@ -304,7 +305,7 @@ int main()
         if (deltaTime >= 1.0 / 30.0)
         {
             std::string fps = std::to_string((1.0 / deltaTime) * frameCounter);
-            std::string title = "GLSL Raytracer - FPS: " + fps;
+            std::string title = "GLSL Raytracer    FPS: " + fps + "    Current sample: " + std::to_string(currAccumPass);
             glfwSetWindowTitle(window, title.c_str());
             prevFrameTime = currFrameTime;
             frameCounter = 0;
