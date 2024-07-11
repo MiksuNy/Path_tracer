@@ -187,7 +187,7 @@ int main()
     glass1.emissionColor = glm::vec3(0);
     glass1.emissionStrength = 0.0f;
     glass1.roughness = 0.1f;
-    glass1.ior = 0.35f;
+    glass1.ior = 0.9f;
     glass1.refractionAmount = 0.96f;
 
     Material ground;
@@ -198,15 +198,16 @@ int main()
 
     Material light;
     light.baseColor = glm::vec3(1);
-    light.emissionColor = glm::vec3(1);
+    light.emissionColor = glm::vec3(0.99, 0.9, 0.8);
     light.emissionStrength = 100.0f;
 
     Material sunLight;
     sunLight.baseColor = glm::vec3(1);
-    sunLight.emissionColor = glm::vec3(0.97, 0.86, 0.81);
-    sunLight.emissionStrength = 10.0f;
+    sunLight.emissionColor = glm::vec3(1);
+    sunLight.emissionStrength = 20.0f;
 
-    Mesh mesh("res/meshes/dragon1.obj");
+    Mesh mesh("res/meshes/suzanne.obj");
+    std::cout << "BVH Nodes: " << mesh.nodes.size() << "\n";
 
     GLuint vertexSSBO, indexSSBO, aabbSSBO;
 
@@ -225,21 +226,17 @@ int main()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, aabbSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, (sizeof(float) * 8) + sizeof(Node) * 2, NULL, GL_DYNAMIC_DRAW);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4 * sizeof(float), mesh.boundsMin);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4 * sizeof(float), 4 * sizeof(float), mesh.boundsMax);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8 * sizeof(float), sizeof(Node), &mesh.childA);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8 * sizeof(float) + sizeof(Node), sizeof(Node), &mesh.childB);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.nodes.size() * sizeof(Node), mesh.nodes.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, aabbSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
     //Triangle(mainProgram, "tri2", glm::vec3(-1.0, 0.0 - 1000, -3.0), glm::vec3(1.0, 0.0 - 1000, -3.0), glm::vec3(0.0, 3.0 - 1000, -3.0), diffuse1);
     
-    //Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.1f, .0f), 0.1f, light);
+    //Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.1f, .0f), 0.1f, glass1);
     //Sphere(mainProgram, "sphere2", glm::vec3(0.0f, 0.3f, .0f),  0.3f, metal1);
-    //Sphere(mainProgram, "sphere3", glm::vec3(0.6f, 0.1f, .0f),  0.1f, light);
-    Sphere(mainProgram, "sunSphere", glm::vec3(10000.0f, 10000.0f, -1.0f), 4000.0f, sunLight);
+    //Sphere(mainProgram, "sphere3", glm::vec3(0.6f, 0.1f, .0f),  0.1f, glass1);
+    //Sphere(mainProgram, "sunSphere", glm::vec3(10000.0f, 10000.0f, -1.0f), 3000.0f, sunLight);
 
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;

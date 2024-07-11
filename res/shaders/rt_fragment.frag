@@ -12,13 +12,15 @@ out vec4 fragColor;
 uniform int SCREEN_W;
 uniform int SCREEN_H;
 
-vec2 viewport = vec2(gl_FragCoord.xy / vec2(SCREEN_W, SCREEN_H));
+uniform sampler2D accumTexture;
+
+vec2 viewport = vec2(gl_FragCoord.xy / textureSize(accumTexture, 0));
 vec2 viewportCenter = viewport - 0.5;
 
 uniform float frameTime;
 uniform float currAccumPass;
 
-uniform sampler2D accumTexture;
+
 
 struct Ray { vec3 origin; vec3 direction; };
 struct Camera { vec3 position; };
@@ -26,7 +28,9 @@ struct Material { vec3 baseColor; float roughness; vec3 emissionColor; float emi
 struct Sphere { vec3 position; float radius; Material material; };
 struct Triangle { vec3 p1; vec3 p2; vec3 p3; Material material; };
 struct HitInfo { vec3 hitPoint; vec3 hitNormal; float hitDist; bool hasHit; Material hitMaterial; };
-struct Node { vec4 boundsMin; vec4 boundsMax; int firstVertexIndex; int numVertices; int padding[2]; };
+struct Node { vec4 boundsMin; vec4 boundsMax; int firstVertexIndex; int numVertices; int childrenIndex; int padding; };
+
+
 
 layout (std430, binding = 1) buffer vertexSSBO {
 	vec4 vertices[];
@@ -35,10 +39,7 @@ layout (std430, binding = 2) buffer indexSSBO {
 	ivec4 indices[];
 };
 layout (std430, binding = 3) buffer BVH {
-	vec4 mesh_boundsMin;
-	vec4 mesh_boundsMax;
-	Node childA;
-	Node childB;
+	Node nodes[];
 };
 
 uniform Camera cam;
@@ -86,7 +87,7 @@ vec3 RandomDirection(inout uint state) {
 
 vec3 RandomInHemisphere(vec3 normal, inout uint state) {
 	vec3 randomInSphere = RandomDirection(state);
-	if (dot(randomInSphere, normal) >= 0.0) {
+	if (dot(randomInSphere, normal) > 0.0) {
 		return randomInSphere;
 	} else {
 		return -randomInSphere;
@@ -134,7 +135,7 @@ HitInfo HitSphere(vec3 center, float radius, Ray ray) {
 
 	float t = (-halfB - sqrt(discriminant)) / a;
 
-	tempHitInfo.hasHit = t > 0.00001;
+	tempHitInfo.hasHit = t > 0.000001;
 	tempHitInfo.hitPoint = ray.origin + ray.direction * t;
 	tempHitInfo.hitDist = t;
 	tempHitInfo.hitNormal = normalize(tempHitInfo.hitPoint - center);
@@ -159,7 +160,7 @@ HitInfo HitTriangle(Triangle tri, in Ray ray) {
 
 	float t = invDet * dot(edge2, sCrossE1);
 
-	tempHitInfo.hasHit = t > 0 && !(det < 0) && !(u < 0 || u > 1) && !(v < 0 || u + v > 1);
+	tempHitInfo.hasHit = t > 0.000001 && !(det < 0) && !(u < 0 || u > 1) && !(v < 0 || u + v > 1);
 	tempHitInfo.hitPoint = ray.origin + ray.direction * t;
 	tempHitInfo.hitDist = t;
 	tempHitInfo.hitNormal = normalize(cross(edge1, edge2));
@@ -173,11 +174,11 @@ HitInfo CalculateRay(in Ray ray) {
 
 	Material tempMaterial;
 	tempMaterial.baseColor = vec3(0.5, 1.0, 0.5);
-	tempMaterial.roughness = 0.5f;
+	tempMaterial.roughness = 1.0f;
 
 	Triangle tempTri;
-	if (HitAABB(mesh_boundsMin.xyz, mesh_boundsMax.xyz, ray)) {
-		for (int i = 0; i < indices.length(); ++i) {
+	if (HitAABB(nodes[0].boundsMin.xyz, nodes[0].boundsMax.xyz, ray)) {
+		for (int i = nodes[0].firstVertexIndex; i < indices.length(); ++i) {
 			tempTri.p1 = vertices[indices[i].x].xyz;
 			tempTri.p2 = vertices[indices[i].y].xyz;
 			tempTri.p3 = vertices[indices[i].z].xyz;
@@ -186,18 +187,19 @@ HitInfo CalculateRay(in Ray ray) {
 			tempHit.hitMaterial = tempMaterial;
 
 			if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) {
+				closestHit.hasHit = true;
 				closestHit = tempHit;
 				closestHit.hitMaterial = tempHit.hitMaterial;
 			}
 		}
 	}
 
-
 	for (int i = 0; i < tris.length(); ++i) {
 		tempHit = HitTriangle(tris[i], ray);
 		tempHit.hitMaterial = tris[i].material;
 
 		if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) {
+			closestHit.hasHit = true;
 			closestHit = tempHit;
 			closestHit.hitMaterial = tempHit.hitMaterial;
 		}
@@ -208,6 +210,7 @@ HitInfo CalculateRay(in Ray ray) {
 		tempHit.hitMaterial = spheres[i].material;
 
 		if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) {
+			closestHit.hasHit = true;
 			closestHit = tempHit;
 			closestHit.hitMaterial = tempHit.hitMaterial;
 		}
@@ -220,17 +223,16 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 	vec3 incomingLight = vec3(0);
 	vec3 emittedLight = vec3(0);
 
-	vec3 skyColor = vec3(1);
-	float skyIntensity = 0.0;
-
-	int currBounces = 0;
+	vec3 skyColor = vec3(0.96, 0.95, 1.0);
+	float skyIntensity = 1.0;
 
 	// BVH visualisation
-	if (HitAABB(mesh_boundsMin.xyz, mesh_boundsMax.xyz, ray)) incomingLight += vec3(1.0, 0.0, 0.0);
-	if (HitAABB(childA.boundsMin.xyz, childA.boundsMax.xyz, ray)) incomingLight += vec3(0.0, 1.0, 0.0);
-	if (HitAABB(childB.boundsMin.xyz, childB.boundsMax.xyz, ray)) incomingLight += vec3(0.0, 0.0, 1.0);
+	for (uint i = 0; i < nodes.length(); ++i) {
+		if (HitAABB(nodes[i].boundsMin.xyz, nodes[i].boundsMax.xyz, ray)) incomingLight += vec3(0.2, 0.0, 0.0);
+	}
 
 	// Raytracing
+	int currBounces = 0;
 	for (int i = 0; i < maxBounces; ++i) {
 		HitInfo hitInfo = CalculateRay(ray);
 		if (hitInfo.hasHit && hitInfo.hitDist < INFINITY) {
@@ -246,13 +248,13 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 				)
 			);
 
-			emittedLight += hitInfo.hitMaterial.emissionColor * hitInfo.hitMaterial.emissionStrength;
-			rayColor *= hitInfo.hitMaterial.baseColor; 
+			emittedLight = hitInfo.hitMaterial.emissionColor * hitInfo.hitMaterial.emissionStrength;
+			rayColor *= hitInfo.hitMaterial.baseColor;
 			incomingLight += (emittedLight * rayColor) * dot(hitInfo.hitNormal, ray.direction);
 		} else {
 			currBounces++;
 			
-			emittedLight += skyColor * skyIntensity;
+			emittedLight = skyColor * skyIntensity;
 			rayColor *= emittedLight;
 			incomingLight += rayColor;
 			break;
@@ -264,7 +266,7 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 
 void main() {
 	uint pixelIndex = uint(viewport.x / SCREEN_W * 4294967295.0 + viewport.y / SCREEN_H * 4294967295.0);
-	uint rngState = uint(pixelIndex * 1234 * frameTime);
+	uint rngState = uint(pixelIndex * 234234 * frameTime);
 
 	Ray ray;
 	ray.origin = cam.position;

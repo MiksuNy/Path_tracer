@@ -26,9 +26,9 @@ Triangle::Triangle()
 
 Triangle::Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, struct Material& material)
 {
-    p1.x = _p1.x; p1.y = _p1.y; p1.z = _p1.z;
-	p2.x = _p2.x; p2.y = _p2.y; p2.z = _p2.z;
-	p3.x = _p3.x; p3.y = _p3.y; p3.z = _p3.z;
+    p1.x = _p1.x; p1.y = _p1.y; p1.z = _p1.z; p1.w = 0.0f;
+	p2.x = _p2.x; p2.y = _p2.y; p2.z = _p2.z; p2.w = 0.0f;
+	p3.x = _p3.x; p3.y = _p3.y; p3.z = _p3.z; p3.w = 0.0f;
 
 	program.Use();
 	program.SetUniform3f(std::string(name).append(".p1").c_str(),							this->p1);
@@ -43,11 +43,20 @@ Triangle::Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm
 	program.Unuse();
 }
 
+glm::vec3 Triangle::Center()
+{
+	float cX = (p1.x + p2.x + p3.x) / 3;
+	float cY = (p1.y + p2.y + p3.y) / 3;
+	float cZ = (p1.z + p2.z + p3.z) / 3;
+	return glm::vec3(cX, cY, cZ);
+}
+
 Mesh::Mesh(const char* filePath)
 {
 	this->Load(filePath);
 	this->GenBoundingBox();
-	this->GenBVH();
+
+	this->SplitNode(this->self);
 }
 
 void Mesh::Load(const char* filePath)
@@ -93,65 +102,95 @@ void Mesh::Load(const char* filePath)
 
 		double timeAfterLoad = glfwGetTime();
 		std::cout << "\n\n\n\t'" << filePath << "' took " << timeAfterLoad - timeBeforeLoad << " seconds to load" << "\n";
-		std::cout << "\t'" << filePath << "' has " << indices.size() / 4 << " triangles" << "\n\n\n\n\n";
+		std::cout << "\t'" << filePath << "' has " << indices.size() / 4 << " triangles" << "\n";
+		std::cout << "\t'" << filePath << "' has " << vertices.size() / 4 << " vertices" << "\n\n\n\n\n";
 	}
 }
 
 void Mesh::GenBoundingBox()
 {
-	for (int i = 0; i < this->vertices.size(); i+=4)
+	for (int i = 0; i < vertices.size(); i += 4)
 	{
-		if (this->vertices[i] > boundsMax[0]) boundsMax[0] = this->vertices[i];
-		else if (this->vertices[i + 1] > boundsMax[1]) boundsMax[1] = this->vertices[i + 1];
-		else if (this->vertices[i + 2] > boundsMax[2]) boundsMax[2] = this->vertices[i + 2];
+		glm::vec3 vertex = glm::vec3(vertices[i], vertices[i + 1], vertices[i + 2]);
 
-		else if (this->vertices[i] < boundsMin[0]) boundsMin[0] = this->vertices[i];
-		else if (this->vertices[i + 1] < boundsMin[1]) boundsMin[1] = this->vertices[i + 1];
-		else if (this->vertices[i + 2] < boundsMin[2]) boundsMin[2] = this->vertices[i + 2];
+		if (vertex.x > self.boundsMax[0]) self.boundsMax[0] = vertex.x;
+		if (vertex.y > self.boundsMax[1]) self.boundsMax[1] = vertex.y;
+		if (vertex.z > self.boundsMax[2]) self.boundsMax[2] = vertex.z;
+
+		if (vertex.x < self.boundsMin[0]) self.boundsMin[0] = vertex.x;
+		if (vertex.y < self.boundsMin[1]) self.boundsMin[1] = vertex.y;
+		if (vertex.z < self.boundsMin[2]) self.boundsMin[2] = vertex.z;
 	}
 
-	std::cout << "\n\tBounds min: " << "x: " << boundsMin[0] << ", y: " << boundsMin[1] << ", z: " << boundsMin[2] << "\n";
-	std::cout << "\tBounds max: " << "x: " << boundsMax[0] << ", y: " << boundsMax[1] << ", z: " << boundsMax[2] << "\n\n\n\n\n";
+	nodes.push_back(this->self);
+
+	std::cout << "\n\tBounds min: " << "x: " << self.boundsMin[0] << ", y: " << self.boundsMin[1] << ", z: " << self.boundsMin[2] << "\n";
+	std::cout << "\tBounds max: " << "x: " << self.boundsMax[0] << ", y: " << self.boundsMax[1] << ", z: " << self.boundsMax[2] << "\n\n\n\n\n";
 }
 
-void Mesh::GenBVH()
+void Mesh::SplitNode(Node parent)
 {
-	int numVertsA = 0;
-	int numVertsB = 0;
+	parent.childrenIndex = nodes.size();
+	struct Node childA;
+	struct Node childB;
 
-	for (int i = 0; i < this->vertices.size(); i += 4)
+	float sizeX = abs(parent.boundsMin[0]) + abs(parent.boundsMax[0]);
+	float sizeY = abs(parent.boundsMin[1]) + abs(parent.boundsMax[1]);
+	float sizeZ = abs(parent.boundsMin[2]) + abs(parent.boundsMax[2]);
+
+	std::cout << "Size X: " << sizeX << "\n";
+	std::cout << "Size Y: " << sizeY << "\n";
+	std::cout << "Size Z: " << sizeZ << "\n";
+
+	int splitAxis = (sizeX > sizeY && sizeX > sizeZ) ? 0 : (sizeY > sizeX && sizeY > sizeZ) ? 1 : (sizeZ > sizeX && sizeZ > sizeY) ? 2 : -1;
+
+	const char* axis = "";
+	(splitAxis == 0) ? axis = "X" : (splitAxis == 1) ? axis = "Y" : (splitAxis == 2) ? axis = "Z" : axis = "WTF?";
+	std::cout << "Split axis: " << axis << "\n";
+
+	for (int i = 0; i < vertices.size(); i += 4)
 	{
-		if (this->vertices[i] < 0.0)
+		glm::vec3 vertex = glm::vec3(vertices[i], vertices[i + 1], vertices[i + 2]);
+
+		if (vertex.x >= (parent.boundsMin[splitAxis] + parent.boundsMax[splitAxis]) / 2)
 		{
-			if (this->vertices[i] > childA.boundsMax[0]) childA.boundsMax[0] = this->vertices[i];
-			else if (this->vertices[i + 1] > childA.boundsMax[1]) childA.boundsMax[1] = this->vertices[i + 1];
-			else if (this->vertices[i + 2] > childA.boundsMax[2]) childA.boundsMax[2] = this->vertices[i + 2];
+			if (vertex.x > childA.boundsMax[0]) childA.boundsMax[0] = vertex.x;
+			if (vertex.y > childA.boundsMax[1]) childA.boundsMax[1] = vertex.y;
+			if (vertex.z > childA.boundsMax[2]) childA.boundsMax[2] = vertex.z;
 
-			else if (this->vertices[i] < childA.boundsMin[0]) childA.boundsMin[0] = this->vertices[i];
-			else if (this->vertices[i + 1] < childA.boundsMin[1]) childA.boundsMin[1] = this->vertices[i + 1];
-			else if (this->vertices[i + 2] < childA.boundsMin[2]) childA.boundsMin[2] = this->vertices[i + 2];
+			if (vertex.x < childA.boundsMin[0]) childA.boundsMin[0] = vertex.x;
+			if (vertex.y < childA.boundsMin[1]) childA.boundsMin[1] = vertex.y;
+			if (vertex.z < childA.boundsMin[2]) childA.boundsMin[2] = vertex.z;
 
-			numVertsA++;
+			if (childA.firstVertexIndex == -1) childA.firstVertexIndex = i / 4;
+
+			++childA.numVertices;
 		}
-		else if (this->vertices[i] > 0.0)
+		if (vertex.x < (parent.boundsMin[splitAxis] + parent.boundsMax[splitAxis]) / 2)
 		{
-			if (this->vertices[i] > childB.boundsMax[0]) childB.boundsMax[0] = this->vertices[i];
-			else if (this->vertices[i + 1] > childB.boundsMax[1]) childB.boundsMax[1] = this->vertices[i + 1];
-			else if (this->vertices[i + 2] > childB.boundsMax[2]) childB.boundsMax[2] = this->vertices[i + 2];
+			if (vertex.x > childB.boundsMax[0]) childB.boundsMax[0] = vertex.x;
+			if (vertex.y > childB.boundsMax[1]) childB.boundsMax[1] = vertex.y;
+			if (vertex.z > childB.boundsMax[2]) childB.boundsMax[2] = vertex.z;
 
-			else if (this->vertices[i] < childB.boundsMin[0]) childB.boundsMin[0] = this->vertices[i];
-			else if (this->vertices[i + 1] < childB.boundsMin[1]) childB.boundsMin[1] = this->vertices[i + 1];
-			else if (this->vertices[i + 2] < childB.boundsMin[2]) childB.boundsMin[2] = this->vertices[i + 2];
+			if (vertex.x < childB.boundsMin[0]) childB.boundsMin[0] = vertex.x;
+			if (vertex.y < childB.boundsMin[1]) childB.boundsMin[1] = vertex.y;
+			if (vertex.z < childB.boundsMin[2]) childB.boundsMin[2] = vertex.z;
 
-			numVertsB++;
+			if (childB.firstVertexIndex == -1) childB.firstVertexIndex = i / 4;
+
+			++childB.numVertices;
 		}
 	}
 
-	std::cout << "\n\tChild B Bounds min: " << "x: " << childB.boundsMin[0] << ", y: " << childB.boundsMin[1] << ", z: " << childB.boundsMin[2] << "\n";
-	std::cout << "\tChild B Bounds max: " << "x: " << childB.boundsMax[0] << ", y: " << childB.boundsMax[1] << ", z: " << childB.boundsMax[2] << "\n\n\n\n\n";
+	nodes.push_back(childA);
+	nodes.push_back(childB);
 
 	std::cout << "\n\tChild A Bounds min: " << "x: " << childA.boundsMin[0] << ", y: " << childA.boundsMin[1] << ", z: " << childA.boundsMin[2] << "\n";
-	std::cout << "\tChild A Bounds max: " << "x: " << childA.boundsMax[0] << ", y: " << childA.boundsMax[1] << ", z: " << childA.boundsMax[2] << "\n\n\n\n\n";
+	std::cout << "\tChild A Bounds max: " << "x: " << childA.boundsMax[0] << ", y: " << childA.boundsMax[1] << ", z: " << childA.boundsMax[2] << "\n";
 
-	std::cout << "\n\tChild A vertex count: " << numVertsA << ", Child B vertex count: " << numVertsB << "\n\n\n\n\n";
+	std::cout << "\n\tChild B Bounds min: " << "x: " << childB.boundsMin[0] << ", y: " << childB.boundsMin[1] << ", z: " << childB.boundsMin[2] << "\n";
+	std::cout << "\tChild B Bounds max: " << "x: " << childB.boundsMax[0] << ", y: " << childB.boundsMax[1] << ", z: " << childB.boundsMax[2] << "\n";
+
+	std::cout << "\n\tChild A vertex count: " << childA.numVertices << ", Child B vertex count: " << childB.numVertices << "\n";
+	std::cout << "\n\tChild A first vertex: " << childA.firstVertexIndex << ", Child B first vertex: " << childB.firstVertexIndex << "\n\n\n\n\n";
 }
