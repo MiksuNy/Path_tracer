@@ -17,6 +17,8 @@ struct Material
 
     float ior = 0.0f;
     float refractionAmount = 0.0f;
+
+    float padding[2] = { 0.0f };
 };
 
 struct Sphere
@@ -32,6 +34,7 @@ struct Triangle
 {
 public:
     glm::vec4 p1, p2, p3;
+    Material material;
 
     Triangle();
     Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, struct Material& material);
@@ -40,25 +43,20 @@ public:
 
 struct Node
 {
-    float boundsMin[4] = { 0.0f }, boundsMax[4] = { 0.0f };
-    int firstVertexIndex = -1;
-    int numVertices = -1;
-    int childrenIndex = 0;
-    int padding = 0;
+    float boundsMin[4] = { 1e30f }, boundsMax[4] = { -1e30f };
 };
 
 struct Mesh
 {
 public:
-    std::vector<float> vertices;
-    std::vector<int> indices;
+    std::vector<glm::vec4> vertices;
+    std::vector<glm::ivec4> indices;
     std::vector<Triangle> tris;
+    Material material;
 
-    struct Node self;
     std::vector<Node> nodes;
-
     
-    Mesh(const char* filePath);
+    Mesh(const char* filePath, Material material);
 
 private:
     void Load(const char* filePath);

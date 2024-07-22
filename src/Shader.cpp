@@ -39,6 +39,10 @@ void Program::SetUniform3f(const char* uName, glm::vec3 v)
 {
 	glUniform3f(glGetUniformLocation(ID, uName), v.x, v.y, v.z);
 }
+void Program::SetUniform4f(const char* uName, glm::vec4 v)
+{
+	glUniform4f(glGetUniformLocation(ID, uName), v.x, v.y, v.z, v.w);
+}
 
 void Program::SetUniformCamera(Camera &cam)
 {

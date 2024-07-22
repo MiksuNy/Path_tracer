@@ -206,28 +206,21 @@ int main()
     sunLight.emissionColor = glm::vec3(1);
     sunLight.emissionStrength = 20.0f;
 
-    Mesh mesh("res/meshes/suzanne.obj");
-    std::cout << "BVH Nodes: " << mesh.nodes.size() << "\n";
+    Mesh mesh("res/meshes/bunny1.obj", diffuse3);
 
-    GLuint vertexSSBO, indexSSBO, aabbSSBO;
+    GLuint meshSSBO, bvhSSBO;
 
-    glGenBuffers(1, &vertexSSBO);
-    glGenBuffers(1, &indexSSBO);
-    glGenBuffers(1, &aabbSSBO);
+    glGenBuffers(1, &meshSSBO);
+    glGenBuffers(1, &bvhSSBO);
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.vertices.size() * sizeof(float), mesh.vertices.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, vertexSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.tris.size() * sizeof(Triangle), mesh.tris.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.indices.size() * sizeof(int), mesh.indices.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, indexSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, aabbSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, bvhSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.nodes.size() * sizeof(Node), mesh.nodes.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, aabbSSBO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bvhSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);

@@ -29,11 +29,11 @@ Triangle::Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm
     p1.x = _p1.x; p1.y = _p1.y; p1.z = _p1.z; p1.w = 0.0f;
 	p2.x = _p2.x; p2.y = _p2.y; p2.z = _p2.z; p2.w = 0.0f;
 	p3.x = _p3.x; p3.y = _p3.y; p3.z = _p3.z; p3.w = 0.0f;
-
+	
 	program.Use();
-	program.SetUniform3f(std::string(name).append(".p1").c_str(),							this->p1);
-	program.SetUniform3f(std::string(name).append(".p2").c_str(),							this->p2);
-	program.SetUniform3f(std::string(name).append(".p3").c_str(),							this->p3);
+	program.SetUniform4f(std::string(name).append(".p1").c_str(),							this->p1);
+	program.SetUniform4f(std::string(name).append(".p2").c_str(),							this->p2);
+	program.SetUniform4f(std::string(name).append(".p3").c_str(),							this->p3);
 	program.SetUniform3f(std::string(name).append(".material.baseColor").c_str(),			material.baseColor);
 	program.SetUniform1f(std::string(name).append(".material.roughness").c_str(),			material.roughness);
 	program.SetUniform3f(std::string(name).append(".material.emissionColor").c_str(),		material.emissionColor);
@@ -51,12 +51,14 @@ glm::vec3 Triangle::Center()
 	return glm::vec3(cX, cY, cZ);
 }
 
-Mesh::Mesh(const char* filePath)
+Mesh::Mesh(const char* filePath, Material material)
 {
+	this->material = material;
 	this->Load(filePath);
 	this->GenBoundingBox();
 
-	this->SplitNode(this->self);
+	this->SplitNode(nodes[0]);
+	this->SplitNode(nodes[1]);
 }
 
 void Mesh::Load(const char* filePath)
@@ -70,48 +72,59 @@ void Mesh::Load(const char* filePath)
 	{
 		std::cerr << "File not found: " << filePath << std::endl;
 	}
-	else
+	while (getline(inFile, line))
 	{
-		while (getline(inFile, line))
+		if (line.substr(0, 2) == "v ")
 		{
-			if (line.substr(0, 2) == "v ")
-			{
-				float x, y, z, w;
-				sscanf_s(line.c_str(), "v %f %f %f", &x, &y, &z); // vertices
-				w = 1.0f;
+			glm::vec4 vertex;
+			sscanf_s(line.c_str(), "v %f %f %f", &vertex.x, &vertex.y, &vertex.z); // vertices
+			vertex.w = 0.0f;
 
-				vertices.push_back(x);
-				vertices.push_back(y);
-				vertices.push_back(z);
-				vertices.push_back(w);
-			}
-			else if (line.substr(0, 2) == "f ") // indices
-			{
-				int i1, i2, i3, i4;
-				sscanf_s(line.c_str(), "f %i %i %i", &i1, &i2, &i3);
-				i4 = 0;
-
-				indices.push_back(i1 - 1);
-				indices.push_back(i2 - 1);
-				indices.push_back(i3 - 1);
-				indices.push_back(i4);
-			}
+			vertices.push_back(vertex);
 		}
+		else if (line.substr(0, 2) == "f ") // indices
+		{
+			glm::ivec4 index;
+			sscanf_s(line.c_str(), "f %i %i %i", &index.x, &index.y, &index.z);
+			index.w = 0;
 
-		inFile.close();
+			index.x -= 1;
+			index.y -= 1;
+			index.z -= 1;
 
-		double timeAfterLoad = glfwGetTime();
-		std::cout << "\n\n\n\t'" << filePath << "' took " << timeAfterLoad - timeBeforeLoad << " seconds to load" << "\n";
-		std::cout << "\t'" << filePath << "' has " << indices.size() / 4 << " triangles" << "\n";
-		std::cout << "\t'" << filePath << "' has " << vertices.size() / 4 << " vertices" << "\n\n\n\n\n";
+			indices.push_back(index);
+		}
 	}
+
+	inFile.close();
+
+	//tempTri.p1 = vertices[indices[i].x].xyz;
+	//tempTri.p2 = vertices[indices[i].y].xyz;
+	//tempTri.p3 = vertices[indices[i].z].xyz;
+
+	for (int i = 0; i < indices.size(); ++i)
+	{
+		Triangle tempTri;
+		tempTri.p1 = vertices[indices[i].x];
+		tempTri.p2 = vertices[indices[i].y];
+		tempTri.p3 = vertices[indices[i].z];
+		tempTri.material = this->material;
+		tris.push_back(tempTri);
+	}
+
+	double timeAfterLoad = glfwGetTime();
+	std::cout << "\n\n\n\t'" << filePath << "' took " << timeAfterLoad - timeBeforeLoad << " seconds to load" << "\n";
+	std::cout << "\t'" << filePath << "' has " << indices.size() << " triangles" << "\n";
+	std::cout << "\t'" << filePath << "' has " << vertices.size() << " vertices" << "\n\n\n\n\n";
 }
 
 void Mesh::GenBoundingBox()
 {
-	for (int i = 0; i < vertices.size(); i += 4)
+	struct Node self;
+
+	for (int i = 0; i < vertices.size(); ++i)
 	{
-		glm::vec3 vertex = glm::vec3(vertices[i], vertices[i + 1], vertices[i + 2]);
+		glm::vec3 vertex = glm::vec3(vertices[i].x, vertices[i].y, vertices[i].z);
 
 		if (vertex.x > self.boundsMax[0]) self.boundsMax[0] = vertex.x;
 		if (vertex.y > self.boundsMax[1]) self.boundsMax[1] = vertex.y;
@@ -122,7 +135,7 @@ void Mesh::GenBoundingBox()
 		if (vertex.z < self.boundsMin[2]) self.boundsMin[2] = vertex.z;
 	}
 
-	nodes.push_back(this->self);
+	nodes.push_back(self);
 
 	std::cout << "\n\tBounds min: " << "x: " << self.boundsMin[0] << ", y: " << self.boundsMin[1] << ", z: " << self.boundsMin[2] << "\n";
 	std::cout << "\tBounds max: " << "x: " << self.boundsMax[0] << ", y: " << self.boundsMax[1] << ", z: " << self.boundsMax[2] << "\n\n\n\n\n";
@@ -130,7 +143,6 @@ void Mesh::GenBoundingBox()
 
 void Mesh::SplitNode(Node parent)
 {
-	parent.childrenIndex = nodes.size();
 	struct Node childA;
 	struct Node childB;
 
@@ -142,17 +154,17 @@ void Mesh::SplitNode(Node parent)
 	std::cout << "Size Y: " << sizeY << "\n";
 	std::cout << "Size Z: " << sizeZ << "\n";
 
-	int splitAxis = (sizeX > sizeY && sizeX > sizeZ) ? 0 : (sizeY > sizeX && sizeY > sizeZ) ? 1 : (sizeZ > sizeX && sizeZ > sizeY) ? 2 : -1;
+	int splitAxis = (sizeX > sizeY && sizeX > sizeZ) ? 0 : (sizeY > sizeX && sizeY > sizeZ) ? 1 : (sizeZ > sizeX && sizeZ > sizeY) ? 2 : 0;
 
 	const char* axis = "";
 	(splitAxis == 0) ? axis = "X" : (splitAxis == 1) ? axis = "Y" : (splitAxis == 2) ? axis = "Z" : axis = "WTF?";
 	std::cout << "Split axis: " << axis << "\n";
 
-	for (int i = 0; i < vertices.size(); i += 4)
+	for (int i = 0; i < vertices.size(); ++i)
 	{
-		glm::vec3 vertex = glm::vec3(vertices[i], vertices[i + 1], vertices[i + 2]);
+		glm::vec3 vertex = glm::vec3(vertices[i].x, vertices[i].y, vertices[i].z);
 
-		if (vertex.x >= (parent.boundsMin[splitAxis] + parent.boundsMax[splitAxis]) / 2)
+		if (vertex[splitAxis] >= (parent.boundsMin[splitAxis] + parent.boundsMax[splitAxis]) / 2)
 		{
 			if (vertex.x > childA.boundsMax[0]) childA.boundsMax[0] = vertex.x;
 			if (vertex.y > childA.boundsMax[1]) childA.boundsMax[1] = vertex.y;
@@ -161,12 +173,8 @@ void Mesh::SplitNode(Node parent)
 			if (vertex.x < childA.boundsMin[0]) childA.boundsMin[0] = vertex.x;
 			if (vertex.y < childA.boundsMin[1]) childA.boundsMin[1] = vertex.y;
 			if (vertex.z < childA.boundsMin[2]) childA.boundsMin[2] = vertex.z;
-
-			if (childA.firstVertexIndex == -1) childA.firstVertexIndex = i / 4;
-
-			++childA.numVertices;
 		}
-		if (vertex.x < (parent.boundsMin[splitAxis] + parent.boundsMax[splitAxis]) / 2)
+		if (vertex[splitAxis] <= (parent.boundsMin[splitAxis] + parent.boundsMax[splitAxis]) / 2)
 		{
 			if (vertex.x > childB.boundsMax[0]) childB.boundsMax[0] = vertex.x;
 			if (vertex.y > childB.boundsMax[1]) childB.boundsMax[1] = vertex.y;
@@ -175,10 +183,6 @@ void Mesh::SplitNode(Node parent)
 			if (vertex.x < childB.boundsMin[0]) childB.boundsMin[0] = vertex.x;
 			if (vertex.y < childB.boundsMin[1]) childB.boundsMin[1] = vertex.y;
 			if (vertex.z < childB.boundsMin[2]) childB.boundsMin[2] = vertex.z;
-
-			if (childB.firstVertexIndex == -1) childB.firstVertexIndex = i / 4;
-
-			++childB.numVertices;
 		}
 	}
 
@@ -190,7 +194,4 @@ void Mesh::SplitNode(Node parent)
 
 	std::cout << "\n\tChild B Bounds min: " << "x: " << childB.boundsMin[0] << ", y: " << childB.boundsMin[1] << ", z: " << childB.boundsMin[2] << "\n";
 	std::cout << "\tChild B Bounds max: " << "x: " << childB.boundsMax[0] << ", y: " << childB.boundsMax[1] << ", z: " << childB.boundsMax[2] << "\n";
-
-	std::cout << "\n\tChild A vertex count: " << childA.numVertices << ", Child B vertex count: " << childB.numVertices << "\n";
-	std::cout << "\n\tChild A first vertex: " << childA.firstVertexIndex << ", Child B first vertex: " << childB.firstVertexIndex << "\n\n\n\n\n";
 }

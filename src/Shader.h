@@ -32,6 +32,7 @@ public:
 	void SetUniform1i(const char* uName, int i);
 	void SetUniform2f(const char* uName, glm::vec2 v);
 	void SetUniform3f(const char* uName, glm::vec3 v);
+	void SetUniform4f(const char* uName, glm::vec4 v);
 
 	void SetUniformCamera(Camera &cam);
 
