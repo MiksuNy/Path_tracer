@@ -8,12 +8,14 @@ Sphere::Sphere(struct Program& program, const char* name, glm::vec3 pos, float r
 	program.Use();
 	program.SetUniform3f(std::string(name).append(".position").c_str(),						this->position);
 	program.SetUniform1f(std::string(name).append(".radius").c_str(),						this->radius);
-	program.SetUniform3f(std::string(name).append(".material.baseColor").c_str(),			material.baseColor);
-	program.SetUniform1f(std::string(name).append(".material.roughness").c_str(),			material.roughness);
-	program.SetUniform3f(std::string(name).append(".material.emissionColor").c_str(),		material.emissionColor);
-	program.SetUniform1f(std::string(name).append(".material.emissionStrength").c_str(),	material.emissionStrength);
-	program.SetUniform1f(std::string(name).append(".material.ior").c_str(),					material.ior);
-	program.SetUniform1f(std::string(name).append(".material.refractionAmount").c_str(),	material.refractionAmount);
+	program.SetUniform4f(std::string(name).append(".material.baseColor").c_str(), material.baseColor);
+	program.SetUniform4f(std::string(name).append(".material.specularColor").c_str(), material.specularColor);
+	program.SetUniform4f(std::string(name).append(".material.emissionColor").c_str(), material.emissionColor);
+	program.SetUniform1f(std::string(name).append(".material.roughness").c_str(), material.roughness);
+	program.SetUniform1f(std::string(name).append(".material.emissionStrength").c_str(), material.emissionStrength);
+	program.SetUniform1f(std::string(name).append(".material.ior").c_str(), material.ior);
+	program.SetUniform1f(std::string(name).append(".material.refractionAmount").c_str(), material.refractionAmount);
+	program.SetUniform1f(std::string(name).append(".material.specularChance").c_str(), material.specularChance);
 	program.Unuse();
 }
 
@@ -29,17 +31,19 @@ Triangle::Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm
     p1.x = _p1.x; p1.y = _p1.y; p1.z = _p1.z; p1.w = 0.0f;
 	p2.x = _p2.x; p2.y = _p2.y; p2.z = _p2.z; p2.w = 0.0f;
 	p3.x = _p3.x; p3.y = _p3.y; p3.z = _p3.z; p3.w = 0.0f;
-	
+
 	program.Use();
 	program.SetUniform4f(std::string(name).append(".p1").c_str(),							this->p1);
 	program.SetUniform4f(std::string(name).append(".p2").c_str(),							this->p2);
 	program.SetUniform4f(std::string(name).append(".p3").c_str(),							this->p3);
-	program.SetUniform3f(std::string(name).append(".material.baseColor").c_str(),			material.baseColor);
+	program.SetUniform4f(std::string(name).append(".material.baseColor").c_str(),			material.baseColor);
+	program.SetUniform4f(std::string(name).append(".material.specularColor").c_str(),		material.specularColor);
+	program.SetUniform4f(std::string(name).append(".material.emissionColor").c_str(),		material.emissionColor);
 	program.SetUniform1f(std::string(name).append(".material.roughness").c_str(),			material.roughness);
-	program.SetUniform3f(std::string(name).append(".material.emissionColor").c_str(),		material.emissionColor);
 	program.SetUniform1f(std::string(name).append(".material.emissionStrength").c_str(),	material.emissionStrength);
 	program.SetUniform1f(std::string(name).append(".material.ior").c_str(),					material.ior);
 	program.SetUniform1f(std::string(name).append(".material.refractionAmount").c_str(),	material.refractionAmount);
+	program.SetUniform1f(std::string(name).append(".material.specularChance").c_str(),		material.specularChance);
 	program.Unuse();
 }
 
@@ -98,10 +102,6 @@ void Mesh::Load(const char* filePath)
 
 	inFile.close();
 
-	//tempTri.p1 = vertices[indices[i].x].xyz;
-	//tempTri.p2 = vertices[indices[i].y].xyz;
-	//tempTri.p3 = vertices[indices[i].z].xyz;
-
 	for (int i = 0; i < indices.size(); ++i)
 	{
 		Triangle tempTri;
@@ -154,10 +154,10 @@ void Mesh::SplitNode(Node parent)
 	std::cout << "Size Y: " << sizeY << "\n";
 	std::cout << "Size Z: " << sizeZ << "\n";
 
-	int splitAxis = (sizeX > sizeY && sizeX > sizeZ) ? 0 : (sizeY > sizeX && sizeY > sizeZ) ? 1 : (sizeZ > sizeX && sizeZ > sizeY) ? 2 : 0;
+	int splitAxis = (sizeX > sizeY && sizeX > sizeZ) ? 0 : (sizeY > sizeX && sizeY > sizeZ) ? 1 : (sizeZ > sizeX && sizeZ > sizeY) ? 2: 0;
 
 	const char* axis = "";
-	(splitAxis == 0) ? axis = "X" : (splitAxis == 1) ? axis = "Y" : (splitAxis == 2) ? axis = "Z" : axis = "WTF?";
+	(splitAxis == 0) ? axis = "X" : (splitAxis == 1) ? axis = "Y" : (splitAxis == 2) ? axis = "Z" : axis = "ERROR AXIS";
 	std::cout << "Split axis: " << axis << "\n";
 
 	for (int i = 0; i < vertices.size(); ++i)

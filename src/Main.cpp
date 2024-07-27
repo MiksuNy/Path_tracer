@@ -99,11 +99,6 @@ int main()
     accumProgram.Attach(accumVertex);
     accumProgram.Attach(accumFragment);
     accumProgram.Link();
-
-    mainProgram.Use();
-    glUniform1i(glGetUniformLocation(mainProgram.ID, "SCREEN_W"), SCREEN_W);
-    glUniform1i(glGetUniformLocation(mainProgram.ID, "SCREEN_H"), SCREEN_H);
-    mainProgram.Unuse();
     
     GLuint vao, vbo, ebo;
 
@@ -158,55 +153,41 @@ int main()
 
     Camera cam(glm::vec3(0, 0, 1));
 
-    Material metal1;
-    metal1.baseColor = glm::vec3(1);
-    metal1.emissionColor = glm::vec3(0);
-    metal1.emissionStrength = 0.0f;
-    metal1.roughness = 0.01f;
 
-    Material diffuse1;
-    diffuse1.baseColor = glm::vec3(0.1, 0.1, 1.0);
-    diffuse1.emissionColor = glm::vec3(0);
-    diffuse1.emissionStrength = 0.0f;
-    diffuse1.roughness = 1.0f;
 
-    Material diffuse2;
-    diffuse2.baseColor = glm::vec3(0.1, 1.0, 0.1);
-    diffuse2.emissionColor = glm::vec3(0);
-    diffuse2.emissionStrength = 0.0f;
-    diffuse2.roughness = 1.0f;
+    Material specular;
+    specular.baseColor = glm::vec4(0.9, 0.1, 0.1, 1.0);
+    specular.roughness = 0.7f;
+    specular.specularColor = glm::vec4(1.0);
+    specular.specularChance = 0.2f;
+    specular.emissionColor = glm::vec4(0);
+    specular.emissionStrength = 0.0f;
+    specular.refractionAmount = 0.0f;
+    specular.ior = 1.5f;
 
-    Material diffuse3;
-    diffuse3.baseColor = glm::vec3(1.0, 0.1, 0.1);
-    diffuse3.emissionColor = glm::vec3(0);
-    diffuse3.emissionStrength = 0.0f;
-    diffuse3.roughness = 1.0f;
-
-    Material glass1;
-    glass1.baseColor = glm::vec3(1.0, 0.9, 0.7);
-    glass1.emissionColor = glm::vec3(0);
-    glass1.emissionStrength = 0.0f;
-    glass1.roughness = 0.1f;
-    glass1.ior = 0.9f;
-    glass1.refractionAmount = 0.96f;
-
+    Material glass;
+    glass.baseColor = glm::vec4(0.5, 0.5, 0.9, 1.0);
+    glass.roughness = 0.01f;
+    glass.emissionColor = glm::vec4(0);
+    glass.emissionStrength = 0.0f;
+    glass.refractionAmount = 0.95f;
+    glass.ior = 1.024f;
+    
     Material ground;
-    ground.baseColor = glm::vec3(1);
-    ground.emissionColor = glm::vec3(0);
+    ground.baseColor = glm::vec4(1);
+    ground.specularColor = glm::vec4(1.0);
+    ground.specularChance = 0.0f;
+    ground.emissionColor = glm::vec4(0);
     ground.emissionStrength = 0.0f;
     ground.roughness = 1.0f;
 
-    Material light;
-    light.baseColor = glm::vec3(1);
-    light.emissionColor = glm::vec3(0.99, 0.9, 0.8);
-    light.emissionStrength = 100.0f;
+    Material sun;
+    sun.baseColor = glm::vec4(1.0);
+    sun.emissionColor = glm::vec4(1.0);
+    sun.emissionStrength = 4.0f;
 
-    Material sunLight;
-    sunLight.baseColor = glm::vec3(1);
-    sunLight.emissionColor = glm::vec3(1);
-    sunLight.emissionStrength = 20.0f;
-
-    Mesh mesh("res/meshes/bunny1.obj", diffuse3);
+    Mesh mesh("res/meshes/bunny1.obj", specular);
+    std::cout << "Size of material struct: " << sizeof(Material) << std::endl;
 
     GLuint meshSSBO, bvhSSBO;
 
@@ -214,22 +195,18 @@ int main()
     glGenBuffers(1, &bvhSSBO);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.tris.size() * sizeof(Triangle), mesh.tris.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.tris.size() * sizeof(Triangle), mesh.tris.data(), GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, bvhSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.nodes.size() * sizeof(Node), mesh.nodes.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.nodes.size() * sizeof(Node), mesh.nodes.data(), GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bvhSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
-    //Triangle(mainProgram, "tri2", glm::vec3(-1.0, 0.0 - 1000, -3.0), glm::vec3(1.0, 0.0 - 1000, -3.0), glm::vec3(0.0, 3.0 - 1000, -3.0), diffuse1);
-    
-    //Sphere(mainProgram, "sphere1", glm::vec3(-0.6f, 0.1f, .0f), 0.1f, glass1);
-    //Sphere(mainProgram, "sphere2", glm::vec3(0.0f, 0.3f, .0f),  0.3f, metal1);
-    //Sphere(mainProgram, "sphere3", glm::vec3(0.6f, 0.1f, .0f),  0.1f, glass1);
-    //Sphere(mainProgram, "sunSphere", glm::vec3(10000.0f, 10000.0f, -1.0f), 3000.0f, sunLight);
+    Sphere(mainProgram, "sphere1", glm::vec3(-0.5, 0.25, 0.0), 0.25, specular);
+    Sphere(mainProgram, "sphere2", glm::vec3(100.0, 100.0, 0.0), 25.0, sun);
 
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;
@@ -251,13 +228,13 @@ int main()
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
-        if (glfwGetKey(window, GLFW_KEY_W)) cam.velocity.y += 0.0025f;
-        if (glfwGetKey(window, GLFW_KEY_S)) cam.velocity.y -= 0.0025f;
-        if (glfwGetKey(window, GLFW_KEY_A)) cam.velocity.x -= 0.0025f;
-        if (glfwGetKey(window, GLFW_KEY_D)) cam.velocity.x += 0.0025f;
+        if (glfwGetKey(window, GLFW_KEY_W)) cam.velocity.y += 0.001f;
+        if (glfwGetKey(window, GLFW_KEY_S)) cam.velocity.y -= 0.001f;
+        if (glfwGetKey(window, GLFW_KEY_A)) cam.velocity.x -= 0.001f;
+        if (glfwGetKey(window, GLFW_KEY_D)) cam.velocity.x += 0.001f;
 
-        if (glfwGetKey(window, GLFW_KEY_UP)) cam.velocity.z -= 0.0025f;
-        if (glfwGetKey(window, GLFW_KEY_DOWN)) cam.velocity.z += 0.0025f;
+        if (glfwGetKey(window, GLFW_KEY_UP)) cam.velocity.z -= 0.001f;
+        if (glfwGetKey(window, GLFW_KEY_DOWN)) cam.velocity.z += 0.001f;
 
         cam.velocity *= 0.8f;
         cam.position += cam.velocity;

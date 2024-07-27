@@ -9,16 +9,17 @@
 
 struct Material
 {
-    glm::vec3 baseColor = glm::vec3(0);
-    float roughness = 0.0f;
-
-    glm::vec3 emissionColor = glm::vec3(0);
-    float emissionStrength = 0.0f;
-
-    float ior = 0.0f;
-    float refractionAmount = 0.0f;
-
-    float padding[2] = { 0.0f };
+public:
+    glm::vec4 baseColor;
+    glm::vec4 specularColor;
+    glm::vec4 emissionColor;
+    float roughness;
+    float emissionStrength;
+    float ior;
+    float refractionAmount;
+    float specularChance;
+private:
+    float pad[3];
 };
 
 struct Sphere
