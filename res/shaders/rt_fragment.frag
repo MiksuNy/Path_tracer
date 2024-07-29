@@ -3,7 +3,6 @@
 #define PI 3.14159265
 #define TWO_PI 6.28318530
 #define INFINITY 10000000.0
-#define EPS 0.000001
 
 const vec4 skyColor = vec4(0.96, 0.95, 1.0, 1.0);
 const float skyIntensity = 1.0;
@@ -24,7 +23,10 @@ uniform float currAccumPass;
 
 
 struct Ray { vec3 origin; vec3 direction; };
-struct Camera { vec3 position; };
+struct Camera {
+	vec3 position;
+	mat4 view;
+};
 struct Material {
 	vec4 baseColor;
 	vec4 specularColor;
@@ -260,7 +262,7 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 					),
 					mix (
 						refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior), -RandomInHemisphere(hitInfo.hitNormal, state),
-						hitInfo.hitMaterial.roughness
+						FresnelReflectAmount(1.0003, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, mix(hitInfo.hitMaterial.roughness, 0, isSpecularBounce))
 					),
 					hitInfo.hitMaterial.refractionAmount
 				)
@@ -286,24 +288,26 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 
 void main() {
 	uint pixelIndex = uint(viewport.x / textureSize(accumTexture, 0).x * 4294967295.0 + viewport.y / textureSize(accumTexture, 0).y * 4294967295.0);
-	uint rngState = uint(pixelIndex * 23423 * frameTime + RandomValue(pixelIndex));
+	uint rngState = uint(pixelIndex * 893645 * frameTime + currAccumPass * 29457);
 
 	Ray ray;
 	ray.origin = cam.position;
-
-	vec3 camForward = vec3(cam.position.xy, cam.position.z - 1.0);
-
-	ray.direction = vec3(vec2(viewportCenter.x * textureSize(accumTexture, 0).x/textureSize(accumTexture, 0).y, viewportCenter.y) + camForward.xy, camForward.z) - ray.origin;
+	
+	vec2 pixelPos = vec2(viewportCenter.x * textureSize(accumTexture, 0).x/textureSize(accumTexture, 0).y, viewportCenter.y);
+	ray.direction = normalize (
+		vec3(inverse(cam.view) * vec4(-pixelPos.x, pixelPos.y, 1.0, 0.0))
+	);
 
 	vec3 finalColor = vec3(0);
 	vec3 rayTraceColor = vec3(0);
 
-	int maxBounces = 12;
+	int maxBounces = 2;
 	rayTraceColor = RayTrace(ray, maxBounces, rngState);
 
 
-	float weight = 1.0 / (currAccumPass + 1);
-	finalColor = texture(accumTexture, accumTexCoords).rgb * (1 - weight) + rayTraceColor * weight;
+
+	float weight = 1.0 / (currAccumPass + 1.0);
+	finalColor = texture(accumTexture, accumTexCoords).rgb * (1.0 - weight) + rayTraceColor * weight;
 
 	fragColor = vec4(finalColor, 1.0);
 }

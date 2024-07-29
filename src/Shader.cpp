@@ -48,6 +48,7 @@ void Program::SetUniformCamera(Camera &cam)
 {
 	this->Use();
 	this->SetUniform3f("cam.position", cam.position);
+	glUniformMatrix4fv(glGetUniformLocation(this->ID, "cam.view"), 1, GL_FALSE, &cam.view[0][0]);
 	this->Unuse();
 }
 

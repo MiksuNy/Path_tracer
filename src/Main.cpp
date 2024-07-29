@@ -157,7 +157,7 @@ int main()
 
     Material specular;
     specular.baseColor = glm::vec4(0.9, 0.1, 0.1, 1.0);
-    specular.roughness = 0.7f;
+    specular.roughness = 0.9f;
     specular.specularColor = glm::vec4(1.0);
     specular.specularChance = 0.2f;
     specular.emissionColor = glm::vec4(0);
@@ -205,11 +205,12 @@ int main()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
-    Sphere(mainProgram, "sphere1", glm::vec3(-0.5, 0.25, 0.0), 0.25, specular);
+    //Sphere(mainProgram, "sphere1", glm::vec3(0.0, 0.5, 0.0), 0.5, specular);
     Sphere(mainProgram, "sphere2", glm::vec3(100.0, 100.0, 0.0), 25.0, sun);
 
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;
+    double deltaTime = 0.0;
     int frameCounter = 0;
     
     int currAccumPass = 0;
@@ -219,25 +220,52 @@ int main()
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        if (abs(cam.velocity.x) > 0.0001 || abs(cam.velocity.y) > 0.0001 || abs(cam.velocity.z) > 0.0001)
+        if (cam.moving)
         {
             currAccumPass = 0;
 
             glBindFramebuffer(GL_FRAMEBUFFER, screenFboID);
             glClear(GL_COLOR_BUFFER_BIT);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            cam.moving = false;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_W)) cam.velocity.y += 0.001f;
-        if (glfwGetKey(window, GLFW_KEY_S)) cam.velocity.y -= 0.001f;
-        if (glfwGetKey(window, GLFW_KEY_A)) cam.velocity.x -= 0.001f;
-        if (glfwGetKey(window, GLFW_KEY_D)) cam.velocity.x += 0.001f;
+        if (glfwGetKey(window, GLFW_KEY_W))
+        {
+            cam.moving = true;
+            cam.position -= cam.forward * cam.speed * float(deltaTime);
+        }
+        else if (glfwGetKey(window, GLFW_KEY_S))
+        {
+            cam.moving = true;
+            cam.position += cam.forward * cam.speed * float(deltaTime);
+        }
+        if (glfwGetKey(window, GLFW_KEY_A))
+        {
+            cam.moving = true;
+            cam.position -= cam.right * cam.speed * float(deltaTime);
+        }
+        else if (glfwGetKey(window, GLFW_KEY_D))
+        {
+            cam.moving = true;
+            cam.position += cam.right * cam.speed * float(deltaTime);
+        }
+        if (glfwGetKey(window, GLFW_KEY_E))
+        {
+            cam.moving = true;
+            cam.position += cam.up * cam.speed * float(deltaTime);
+        }
+        else if (glfwGetKey(window, GLFW_KEY_Q))
+        {
+            cam.moving = true;
+            cam.position -= cam.up * cam.speed * float(deltaTime);
+        }
+        
+        std::cout << cam.position.x << ", " << cam.position.y << ", " << cam.position.z << std::endl;
 
-        if (glfwGetKey(window, GLFW_KEY_UP)) cam.velocity.z -= 0.001f;
-        if (glfwGetKey(window, GLFW_KEY_DOWN)) cam.velocity.z += 0.001f;
-
-        cam.velocity *= 0.8f;
-        cam.position += cam.velocity;
+        cam.UpdateView(glm::vec3(0.0, 0.0, 0.0));
+        
         mainProgram.SetUniformCamera(cam);
 
         /* Render here */
@@ -267,7 +295,7 @@ int main()
         glfwPollEvents();
 
         currFrameTime = glfwGetTime();
-        double deltaTime = currFrameTime - prevFrameTime;
+        deltaTime = currFrameTime - prevFrameTime;
         frameCounter++;
         if (deltaTime >= 1.0 / 30.0)
         {
