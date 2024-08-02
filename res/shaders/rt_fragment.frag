@@ -4,9 +4,6 @@
 #define TWO_PI 6.28318530
 #define INFINITY 10000000.0
 
-const vec4 skyColor = vec4(0.96, 0.95, 1.0, 1.0);
-const float skyIntensity = 1.0;
-
 // Random number functions: https://github.com/SebLague/Ray-Tracing/blob/main/Assets/Scripts/Shaders/RayTracing.shader
 
 in vec2 accumTexCoords;
@@ -32,16 +29,17 @@ struct Material {
 	vec4 specularColor;
 	vec4 emissionColor;
 	float roughness;
+	float specularRoughness;
 	float emissionStrength;
 	float ior;
 	float refractionAmount;
 	float specularChance;
 
-	float pad[3];
+	float pad[2];
 };
 struct Sphere { vec3 position; float radius; Material material; };
-struct Triangle { vec4 p1; vec4 p2; vec4 p3; Material material; };
-struct HitInfo { vec3 hitPoint; vec3 hitNormal; float hitDist; float travelDist; bool hasHit; Material hitMaterial; };
+struct Triangle { vec4 p1; vec4 p2; vec4 p3; uint materialIndex; /* index to sceneMaterials */ float pad[3]; }; // 64 bytes
+struct HitInfo { vec3 hitPoint; vec3 hitNormal; float hitDist; bool hasHit; Material hitMaterial; };
 struct Node { vec4 boundsMin; vec4 boundsMax; };
 
 uniform Camera cam;
@@ -49,8 +47,11 @@ uniform Camera cam;
 layout (std430, binding = 1) buffer meshSSBO {
 	Triangle meshTriangles[];
 };
-layout (std430, binding = 2) buffer BVH {
+layout (std430, binding = 2) buffer bvhSSBO {
 	Node nodes[];
+};
+layout (std430, binding = 3) buffer materialSSBO {
+	Material sceneMaterials[];
 };
 
 uniform Sphere sphere1;
@@ -187,11 +188,11 @@ HitInfo HitTriangle(Triangle tri, in Ray ray) {
 
 	float t = invDet * dot(edge2, sCrossE1);
 
-	tempHitInfo.hasHit = (t > 0.0) && !(det < 0) && !(u < 0 || u > 1) && !(v < 0 || u + v > 1);
+	tempHitInfo.hasHit = (t > 0.0) && !(det < 0.0 && det > -0.0) && !(u < 0 || u > 1) && !(v < 0 || u + v > 1);
 	tempHitInfo.hitPoint = ray.origin + ray.direction * t;
 	tempHitInfo.hitDist = t;
-	tempHitInfo.hitNormal = normalize(cross(edge1, edge2));
-	tempHitInfo.hitMaterial = tri.material;
+	tempHitInfo.hitNormal = mix(normalize(cross(edge1, edge2)), normalize(cross(edge2, edge1)), (det < 0.0)); // Determine tri normal by which side of the tri was hit
+	tempHitInfo.hitMaterial = sceneMaterials[tri.materialIndex];
 	return tempHitInfo;
 }
 
@@ -233,13 +234,16 @@ HitInfo CalculateRay(in Ray ray) {
 	return closestHit;
 }
 
+const vec4 skyColor = vec4(0.96, 0.95, 1.0, 1.0);
+const float skyIntensity = 1.0;
+
 vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 	vec4 rayColor = vec4(1);
 	vec4 incomingLight = vec4(0);
 	vec4 emittedLight = vec4(0);
 
 	// BVH visualisation
-//	for (uint i = 0; i < nodes.length(); ++i) {
+//	for (int i = 0; i < nodes.length(); ++i) {
 //		if (HitAABB(nodes[i].boundsMin.xyz, nodes[i].boundsMax.xyz, ray)) incomingLight += vec3(0.2, 0.0, 0.0);
 //	}
 
@@ -258,17 +262,17 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 				mix (
 					mix (
 						reflect(ray.direction, hitInfo.hitNormal), RandomInHemisphere(hitInfo.hitNormal, state),
-						FresnelReflectAmount(1.0003, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, mix(hitInfo.hitMaterial.roughness, 0, isSpecularBounce))
+						FresnelReflectAmount(1.0003, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, mix(hitInfo.hitMaterial.roughness, hitInfo.hitMaterial.specularRoughness, isSpecularBounce))
 					),
 					mix (
 						refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior), -RandomInHemisphere(hitInfo.hitNormal, state),
-						FresnelReflectAmount(1.0003, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, mix(hitInfo.hitMaterial.roughness, 0, isSpecularBounce))
+						FresnelReflectAmount(1.0003, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, mix(hitInfo.hitMaterial.roughness, hitInfo.hitMaterial.specularRoughness, isSpecularBounce))
 					),
 					hitInfo.hitMaterial.refractionAmount
 				)
 			);
 
-			ray.origin += ray.direction * 0.0001;
+			ray.origin += ray.direction * 0.00005;
 
 			emittedLight += hitInfo.hitMaterial.emissionColor * hitInfo.hitMaterial.emissionStrength;
 			incomingLight += emittedLight * rayColor;
@@ -301,7 +305,7 @@ void main() {
 	vec3 finalColor = vec3(0);
 	vec3 rayTraceColor = vec3(0);
 
-	int maxBounces = 2;
+	int maxBounces = 4;
 	rayTraceColor = RayTrace(ray, maxBounces, rngState);
 
 

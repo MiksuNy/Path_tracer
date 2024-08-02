@@ -14,12 +14,19 @@ public:
     glm::vec4 specularColor;
     glm::vec4 emissionColor;
     float roughness;
+    float specularRoughness;
     float emissionStrength;
     float ior;
     float refractionAmount;
     float specularChance;
 private:
-    float pad[3];
+    float pad[2];
+};
+
+struct Scene
+{
+public:
+    std::vector<Material> materials;
 };
 
 struct Sphere
@@ -35,16 +42,18 @@ struct Triangle
 {
 public:
     glm::vec4 p1, p2, p3;
-    Material material;
+    uint32_t materialIndex; // Index to scene.materials
+    float pad[3];
 
     Triangle();
-    Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, struct Material& material);
+    Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, uint32_t materialIndex);
     glm::vec3 Center();
 };
 
 struct Node
 {
-    float boundsMin[4] = { 1e30f }, boundsMax[4] = { -1e30f };
+    float boundsMin[4] = { 1e30f };
+    float boundsMax[4] = { -1e30f };
 };
 
 struct Mesh
@@ -53,11 +62,12 @@ public:
     std::vector<glm::vec4> vertices;
     std::vector<glm::ivec4> indices;
     std::vector<Triangle> tris;
-    Material material;
+
+    uint32_t materialIndex;
 
     std::vector<Node> nodes;
     
-    Mesh(const char* filePath, Material material);
+    Mesh(Scene& scene, const char* filePath, uint32_t materialIndex);
 
 private:
     void Load(const char* filePath);

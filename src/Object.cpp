@@ -12,6 +12,7 @@ Sphere::Sphere(struct Program& program, const char* name, glm::vec3 pos, float r
 	program.SetUniform4f(std::string(name).append(".material.specularColor").c_str(), material.specularColor);
 	program.SetUniform4f(std::string(name).append(".material.emissionColor").c_str(), material.emissionColor);
 	program.SetUniform1f(std::string(name).append(".material.roughness").c_str(), material.roughness);
+	program.SetUniform1f(std::string(name).append(".material.specularRoughness").c_str(), material.specularRoughness);
 	program.SetUniform1f(std::string(name).append(".material.emissionStrength").c_str(), material.emissionStrength);
 	program.SetUniform1f(std::string(name).append(".material.ior").c_str(), material.ior);
 	program.SetUniform1f(std::string(name).append(".material.refractionAmount").c_str(), material.refractionAmount);
@@ -26,24 +27,17 @@ Triangle::Triangle()
 	p3.x = 0.0f; p3.y = 0.0f; p3.z = 0.0f; p1.w = 0.0f;
 }
 
-Triangle::Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, struct Material& material)
+Triangle::Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, uint32_t materialIndex)
 {
     p1.x = _p1.x; p1.y = _p1.y; p1.z = _p1.z; p1.w = 0.0f;
 	p2.x = _p2.x; p2.y = _p2.y; p2.z = _p2.z; p2.w = 0.0f;
 	p3.x = _p3.x; p3.y = _p3.y; p3.z = _p3.z; p3.w = 0.0f;
 
 	program.Use();
-	program.SetUniform4f(std::string(name).append(".p1").c_str(),							this->p1);
-	program.SetUniform4f(std::string(name).append(".p2").c_str(),							this->p2);
-	program.SetUniform4f(std::string(name).append(".p3").c_str(),							this->p3);
-	program.SetUniform4f(std::string(name).append(".material.baseColor").c_str(),			material.baseColor);
-	program.SetUniform4f(std::string(name).append(".material.specularColor").c_str(),		material.specularColor);
-	program.SetUniform4f(std::string(name).append(".material.emissionColor").c_str(),		material.emissionColor);
-	program.SetUniform1f(std::string(name).append(".material.roughness").c_str(),			material.roughness);
-	program.SetUniform1f(std::string(name).append(".material.emissionStrength").c_str(),	material.emissionStrength);
-	program.SetUniform1f(std::string(name).append(".material.ior").c_str(),					material.ior);
-	program.SetUniform1f(std::string(name).append(".material.refractionAmount").c_str(),	material.refractionAmount);
-	program.SetUniform1f(std::string(name).append(".material.specularChance").c_str(),		material.specularChance);
+	program.SetUniform4f(std::string(name).append(".p1").c_str(), this->p1);
+	program.SetUniform4f(std::string(name).append(".p2").c_str(), this->p2);
+	program.SetUniform4f(std::string(name).append(".p3").c_str(), this->p3);
+	glUniform1ui(glGetUniformLocation(program.ID, std::string(name).append(".materialIndex").c_str()), materialIndex);
 	program.Unuse();
 }
 
@@ -55,14 +49,35 @@ glm::vec3 Triangle::Center()
 	return glm::vec3(cX, cY, cZ);
 }
 
-Mesh::Mesh(const char* filePath, Material material)
+Mesh::Mesh(Scene& scene, const char* filePath, uint32_t materialIndex)
 {
-	this->material = material;
+	this->materialIndex = materialIndex;
 	this->Load(filePath);
 	this->GenBoundingBox();
 
 	this->SplitNode(nodes[0]);
 	this->SplitNode(nodes[1]);
+
+	GLuint meshSSBO, bvhSSBO, materialSSBO;
+
+	glGenBuffers(1, &meshSSBO);
+	glGenBuffers(1, &bvhSSBO);
+	glGenBuffers(1, &materialSSBO);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, this->tris.size() * sizeof(Triangle), this->tris.data(), GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, bvhSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, this->nodes.size() * sizeof(Node), this->nodes.data(), GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bvhSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, scene.materials.size() * sizeof(Material), scene.materials.data(), GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, materialSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Mesh::Load(const char* filePath)
@@ -108,7 +123,7 @@ void Mesh::Load(const char* filePath)
 		tempTri.p1 = vertices[indices[i].x];
 		tempTri.p2 = vertices[indices[i].y];
 		tempTri.p3 = vertices[indices[i].z];
-		tempTri.material = this->material;
+		tempTri.materialIndex = this->materialIndex;
 		tris.push_back(tempTri);
 	}
 

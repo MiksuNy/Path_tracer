@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <glm.hpp>
+#include <gtx/rotate_vector.hpp>
 
 #include "Utility.h"
 #include "Shader.h"
@@ -149,63 +150,58 @@ int main()
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
+    Scene scene;
 
     Camera cam(glm::vec3(0, 0, 1));
 
 
 
     Material specular;
-    specular.baseColor = glm::vec4(0.9, 0.1, 0.1, 1.0);
-    specular.roughness = 0.9f;
+    specular.baseColor = glm::vec4(0.9, 0.9, 0.9, 1.0);
+    specular.roughness = 0.01f;
+    specular.specularRoughness = 0.01f;
     specular.specularColor = glm::vec4(1.0);
-    specular.specularChance = 0.2f;
+    specular.specularChance = 0.0f;
     specular.emissionColor = glm::vec4(0);
     specular.emissionStrength = 0.0f;
     specular.refractionAmount = 0.0f;
-    specular.ior = 1.5f;
+    specular.ior = 1.1f;
+    scene.materials.push_back(specular);
 
     Material glass;
-    glass.baseColor = glm::vec4(0.5, 0.5, 0.9, 1.0);
+    glass.baseColor = glm::vec4(1.0, 0.7, 0.3, 1.0);
     glass.roughness = 0.01f;
+    glass.specularRoughness = 0.01f;
+    glass.specularColor = glm::vec4(1.0);
+    glass.specularChance = 0.0f;
     glass.emissionColor = glm::vec4(0);
     glass.emissionStrength = 0.0f;
-    glass.refractionAmount = 0.95f;
-    glass.ior = 1.024f;
+    glass.refractionAmount = 0.92f;
+    glass.ior = 1.0324f;
+    scene.materials.push_back(glass);
     
     Material ground;
-    ground.baseColor = glm::vec4(1);
+    ground.baseColor = glm::vec4(0.9, 0.9, 0.9, 1.0);
+    ground.roughness = 0.9f;
+    ground.specularRoughness = 0.01f;
     ground.specularColor = glm::vec4(1.0);
-    ground.specularChance = 0.0f;
+    ground.specularChance = 0.02f;
     ground.emissionColor = glm::vec4(0);
     ground.emissionStrength = 0.0f;
-    ground.roughness = 1.0f;
+    ground.refractionAmount = 0.0f;
+    ground.ior = 1.9f;
+    scene.materials.push_back(ground);
 
     Material sun;
     sun.baseColor = glm::vec4(1.0);
     sun.emissionColor = glm::vec4(1.0);
-    sun.emissionStrength = 4.0f;
+    sun.emissionStrength = 8.0f;
+    scene.materials.push_back(sun);
 
-    Mesh mesh("res/meshes/bunny1.obj", specular);
-    std::cout << "Size of material struct: " << sizeof(Material) << std::endl;
+    Mesh mesh(scene, "res/meshes/suzanne.obj", 1);
 
-    GLuint meshSSBO, bvhSSBO;
-
-    glGenBuffers(1, &meshSSBO);
-    glGenBuffers(1, &bvhSSBO);
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.tris.size() * sizeof(Triangle), mesh.tris.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, bvhSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.nodes.size() * sizeof(Node), mesh.nodes.data(), GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bvhSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-    Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), ground);
-    //Sphere(mainProgram, "sphere1", glm::vec3(0.0, 0.5, 0.0), 0.5, specular);
+    Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), 0);
+    //Sphere(mainProgram, "sphere1", glm::vec3(-0.8, 0.25, 0.2), 0.25, sun);
     Sphere(mainProgram, "sphere2", glm::vec3(100.0, 100.0, 0.0), 25.0, sun);
 
     double prevFrameTime = 0.0;
@@ -234,38 +230,35 @@ int main()
         if (glfwGetKey(window, GLFW_KEY_W))
         {
             cam.moving = true;
-            cam.position -= cam.forward * cam.speed * float(deltaTime);
+            cam.position -= cam.forward * cam.speed;
         }
         else if (glfwGetKey(window, GLFW_KEY_S))
         {
             cam.moving = true;
-            cam.position += cam.forward * cam.speed * float(deltaTime);
+            cam.position += cam.forward * cam.speed;
         }
         if (glfwGetKey(window, GLFW_KEY_A))
         {
             cam.moving = true;
-            cam.position -= cam.right * cam.speed * float(deltaTime);
+            cam.position -= cam.right * cam.speed;
         }
         else if (glfwGetKey(window, GLFW_KEY_D))
         {
             cam.moving = true;
-            cam.position += cam.right * cam.speed * float(deltaTime);
+            cam.position += cam.right * cam.speed;
         }
         if (glfwGetKey(window, GLFW_KEY_E))
         {
             cam.moving = true;
-            cam.position += cam.up * cam.speed * float(deltaTime);
+            cam.position += cam.up * cam.speed;
         }
         else if (glfwGetKey(window, GLFW_KEY_Q))
         {
             cam.moving = true;
-            cam.position -= cam.up * cam.speed * float(deltaTime);
+            cam.position -= cam.up * cam.speed;
         }
-        
-        std::cout << cam.position.x << ", " << cam.position.y << ", " << cam.position.z << std::endl;
 
-        cam.UpdateView(glm::vec3(0.0, 0.0, 0.0));
-        
+        cam.UpdateView();
         mainProgram.SetUniformCamera(cam);
 
         /* Render here */
