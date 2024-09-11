@@ -157,57 +157,68 @@ int main()
 
 
     Material specular;
-    specular.baseColor = glm::vec4(0.9, 0.9, 0.9, 1.0);
-    specular.roughness = 0.01f;
-    specular.specularRoughness = 0.01f;
+    specular.baseColor = glm::vec4(0.9, 0.4, 0.1, 1.0);
+    specular.smoothness = 0.5f;
+    specular.specularSmoothness = 0.9f;
     specular.specularColor = glm::vec4(1.0);
-    specular.specularChance = 0.0f;
+    specular.specularChance = 0.4f;
     specular.emissionColor = glm::vec4(0);
     specular.emissionStrength = 0.0f;
     specular.refractionAmount = 0.0f;
-    specular.ior = 1.1f;
+    specular.ior = 1.4f;
     scene.materials.push_back(specular);
+
+    Material diffuse;
+    diffuse.baseColor = glm::vec4(0.1, 0.9, 0.1, 1.0);
+    diffuse.smoothness = 0.03f;
+    diffuse.specularSmoothness = 0.03f;
+    diffuse.specularColor = glm::vec4(1.0);
+    diffuse.specularChance = 0.0f;
+    diffuse.emissionColor = glm::vec4(0);
+    diffuse.emissionStrength = 0.0f;
+    diffuse.refractionAmount = 0.0f;
+    diffuse.ior = 1.4f;
+    scene.materials.push_back(diffuse);
 
     Material glass;
     glass.baseColor = glm::vec4(1.0, 0.7, 0.3, 1.0);
-    glass.roughness = 0.01f;
-    glass.specularRoughness = 0.01f;
+    glass.smoothness = 0.92f;
+    glass.specularSmoothness = 0.92f;
     glass.specularColor = glm::vec4(1.0);
     glass.specularChance = 0.0f;
     glass.emissionColor = glm::vec4(0);
     glass.emissionStrength = 0.0f;
     glass.refractionAmount = 0.92f;
-    glass.ior = 1.0324f;
+    glass.ior = 1.5f;
     scene.materials.push_back(glass);
     
     Material ground;
     ground.baseColor = glm::vec4(0.9, 0.9, 0.9, 1.0);
-    ground.roughness = 0.9f;
-    ground.specularRoughness = 0.01f;
+    ground.smoothness = 0.1f;
+    ground.specularSmoothness = 0.0f;
     ground.specularColor = glm::vec4(1.0);
-    ground.specularChance = 0.02f;
+    ground.specularChance = 0.0f;
     ground.emissionColor = glm::vec4(0);
     ground.emissionStrength = 0.0f;
     ground.refractionAmount = 0.0f;
-    ground.ior = 1.9f;
+    ground.ior = 1.6f;
     scene.materials.push_back(ground);
 
     Material sun;
     sun.baseColor = glm::vec4(1.0);
     sun.emissionColor = glm::vec4(1.0);
-    sun.emissionStrength = 8.0f;
+    sun.emissionStrength = 2.0f;
     scene.materials.push_back(sun);
 
-    Mesh mesh(scene, "res/meshes/suzanne.obj", 1);
+    Mesh mesh(scene, "res/meshes/bunny1.obj", 0);
 
-    Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), 0);
-    //Sphere(mainProgram, "sphere1", glm::vec3(-0.8, 0.25, 0.2), 0.25, sun);
-    Sphere(mainProgram, "sphere2", glm::vec3(100.0, 100.0, 0.0), 25.0, sun);
+    Triangle(mainProgram, "tri1", glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), 3);
+    //Sphere(mainProgram, "sphere1", glm::vec3(-0.5, 0.5, 0.0), 0.5, glass);
+    Sphere(mainProgram, "sphere2", glm::vec3(100.0, 100.0, 0.0), 5.0, sun);
 
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;
     double deltaTime = 0.0;
-    int frameCounter = 0;
     
     int currAccumPass = 0;
 
@@ -278,7 +289,7 @@ int main()
 
         currAccumPass++;
         mainProgram.Use();
-        mainProgram.SetUniform1f("currAccumPass", (float)currAccumPass);
+        glUniform1i(glGetUniformLocation(mainProgram.ID, "currAccumPass"), currAccumPass);
         mainProgram.Unuse();
 
         /* Swap front and back buffers */
@@ -289,15 +300,11 @@ int main()
 
         currFrameTime = glfwGetTime();
         deltaTime = currFrameTime - prevFrameTime;
-        frameCounter++;
-        if (deltaTime >= 1.0 / 30.0)
-        {
-            std::string fps = std::to_string((1.0 / deltaTime) * frameCounter);
-            std::string title = "GLSL Raytracer    FPS: " + fps + "    Current sample: " + std::to_string(currAccumPass);
-            glfwSetWindowTitle(window, title.c_str());
-            prevFrameTime = currFrameTime;
-            frameCounter = 0;
-        }
+
+        std::string frameTime = std::to_string(deltaTime * 1000.0);
+        std::string title = "GLSL Raytracer | Frametime: " + frameTime + " ms" + " | Current sample: " + std::to_string(currAccumPass);
+        glfwSetWindowTitle(window, title.c_str());
+        prevFrameTime = currFrameTime;
 
         mainProgram.Use();
         mainProgram.SetUniform1f("frameTime", deltaTime);

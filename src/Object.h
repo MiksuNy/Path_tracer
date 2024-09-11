@@ -13,8 +13,8 @@ public:
     glm::vec4 baseColor;
     glm::vec4 specularColor;
     glm::vec4 emissionColor;
-    float roughness;
-    float specularRoughness;
+    float smoothness;
+    float specularSmoothness;
     float emissionStrength;
     float ior;
     float refractionAmount;
@@ -54,6 +54,9 @@ struct Node
 {
     float boundsMin[4] = { 1e30f };
     float boundsMax[4] = { -1e30f };
+    bool isLeaf = false;
+    int nextIndex = 0;
+    int numTris = 0;
 };
 
 struct Mesh
@@ -67,10 +70,9 @@ public:
 
     std::vector<Node> nodes;
     
-    Mesh(Scene& scene, const char* filePath, uint32_t materialIndex);
+    Mesh(Scene scene, const char* filePath, uint32_t materialIndex);
 
 private:
     void Load(const char* filePath);
     void GenBoundingBox();
-    void SplitNode(Node parent);
 };

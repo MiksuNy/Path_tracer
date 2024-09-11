@@ -15,7 +15,7 @@ vec2 viewport = vec2(gl_FragCoord.xy / textureSize(accumTexture, 0));
 vec2 viewportCenter = viewport - 0.5;
 
 uniform float frameTime;
-uniform float currAccumPass;
+uniform int currAccumPass;
 
 
 
@@ -28,8 +28,8 @@ struct Material {
 	vec4 baseColor;
 	vec4 specularColor;
 	vec4 emissionColor;
-	float roughness;
-	float specularRoughness;
+    float smoothness;
+    float specularSmoothness;
 	float emissionStrength;
 	float ior;
 	float refractionAmount;
@@ -39,8 +39,8 @@ struct Material {
 };
 struct Sphere { vec3 position; float radius; Material material; };
 struct Triangle { vec4 p1; vec4 p2; vec4 p3; uint materialIndex; /* index to sceneMaterials */ float pad[3]; }; // 64 bytes
-struct HitInfo { vec3 hitPoint; vec3 hitNormal; float hitDist; bool hasHit; Material hitMaterial; };
-struct Node { vec4 boundsMin; vec4 boundsMax; };
+struct HitInfo { vec3 hitPoint; vec3 hitNormal; float hitDist; float travelDist; bool hasHit; Material hitMaterial; };
+struct Node { vec4 boundsMin; vec4 boundsMax; int nextIndex; int numTris; };
 
 uniform Camera cam;
 
@@ -89,7 +89,7 @@ vec3 RandomDirection(inout uint state) {
 	return normalize(vec3(x, y, z));
 }
 
-vec3 RandomInHemisphere(vec3 normal, inout uint state) {
+vec3 RandomInHemisphere(in vec3 normal, inout uint state) {
 	vec3 randomInSphere = RandomDirection(state);
 	if (dot(randomInSphere, normal) > 0.0) {
 		return randomInSphere;
@@ -98,36 +98,12 @@ vec3 RandomInHemisphere(vec3 normal, inout uint state) {
 	}
 }
 
-float LengthSquared(vec3 vec) {
+float LengthSquared(in vec3 vec) {
 	return (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 }
 
-// https://blog.demofox.org/2017/01/09/raytracing-reflection-refraction-fresnel-total-internal-reflection-and-beers-law/
-float FresnelReflectAmount (float n1, float n2, vec3 normal, vec3 incident, float roughness)
-{
-        // Schlick aproximation
-        float r0 = (n1-n2) / (n1+n2);
-        r0 *= r0;
-        float cosX = -dot(normal, incident);
-        if (n1 > n2)
-        {
-            float n = n1/n2;
-            float sinT2 = n*n*(1.0-cosX*cosX);
-            // Total internal reflection
-            if (sinT2 > 1.0)
-                return 1.0;
-            cosX = sqrt(1.0-sinT2);
-        }
-        float x = 1.0-cosX;
-        float ret = r0+(1.0-r0)*x*x*x*x*x;
- 
-        // adjust reflect multiplier for object reflectivity
-        ret = (roughness + (1.0-roughness) * ret);
-        return ret;
-}
-
-// Thanks to https://tavianator.com/2011/ray_box.html
-bool HitAABB(vec3 boundsMin, vec3 boundsMax, in Ray ray) {
+// https://tavianator.com/2011/ray_box.html
+bool HitAABB(in vec3 boundsMin, in vec3 boundsMax, in Ray ray) {
 	vec3 invDir = (1.0/ray.direction);
 
 	float tx1 = (boundsMin.x - ray.origin.x)*invDir.x;
@@ -151,7 +127,7 @@ bool HitAABB(vec3 boundsMin, vec3 boundsMax, in Ray ray) {
 	return tMax >= tMin && tMax > 0;
 };
 
-HitInfo HitSphere(vec3 center, float radius, Ray ray) {
+HitInfo HitSphere(in vec3 center, in float radius, in Ray ray) {
 	HitInfo tempHitInfo;
 
     vec3 oc = vec3(ray.origin - center);
@@ -161,17 +137,19 @@ HitInfo HitSphere(vec3 center, float radius, Ray ray) {
     
 	float discriminant = halfB * halfB - a * c;
 
-	float t = (-halfB - sqrt(discriminant)) / a;
+	float t0 = (-halfB - sqrt(discriminant)) / a;
+	float t1 = (-halfB + sqrt(discriminant)) / a;
 
-	tempHitInfo.hasHit = t > 0.0;
-	tempHitInfo.hitPoint = ray.origin + ray.direction * t;
-	tempHitInfo.hitDist = t;
+	tempHitInfo.hasHit = t0 > 0.0;
+	tempHitInfo.hitPoint = ray.origin + ray.direction * t0;
+	tempHitInfo.hitDist = t0;
+	tempHitInfo.travelDist = t1 - t0;
 	tempHitInfo.hitNormal = normalize(tempHitInfo.hitPoint - center);
 	return tempHitInfo;
 }
 
 // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-HitInfo HitTriangle(Triangle tri, in Ray ray) {
+HitInfo HitTriangle(in Triangle tri, in Ray ray) {
 	HitInfo tempHitInfo;
 
 	vec3 edge1 = tri.p2.xyz - tri.p1.xyz;
@@ -191,7 +169,7 @@ HitInfo HitTriangle(Triangle tri, in Ray ray) {
 	tempHitInfo.hasHit = (t > 0.0) && !(det < 0.0 && det > -0.0) && !(u < 0 || u > 1) && !(v < 0 || u + v > 1);
 	tempHitInfo.hitPoint = ray.origin + ray.direction * t;
 	tempHitInfo.hitDist = t;
-	tempHitInfo.hitNormal = mix(normalize(cross(edge1, edge2)), normalize(cross(edge2, edge1)), (det < 0.0)); // Determine tri normal by which side of the tri was hit
+	tempHitInfo.hitNormal = normalize(mix(cross(edge1, edge2), cross(edge2, edge1), (det < 0.0))); // Determine tri normal by which side of the tri was hit
 	tempHitInfo.hitMaterial = sceneMaterials[tri.materialIndex];
 	return tempHitInfo;
 }
@@ -206,7 +184,6 @@ HitInfo CalculateRay(in Ray ray) {
 			tempHit = HitTriangle(meshTriangles[i], ray);
 
 			if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) {
-				closestHit.hasHit = true;
 				closestHit = tempHit;
 			}
 		}
@@ -216,7 +193,6 @@ HitInfo CalculateRay(in Ray ray) {
 		tempHit = HitTriangle(tris[i], ray);
 
 		if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) {
-			closestHit.hasHit = true;
 			closestHit = tempHit;
 		}
 	}
@@ -226,7 +202,6 @@ HitInfo CalculateRay(in Ray ray) {
 		tempHit.hitMaterial = spheres[i].material;
 
 		if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) {
-			closestHit.hasHit = true;
 			closestHit = tempHit;
 			closestHit.hitMaterial = tempHit.hitMaterial;
 		}
@@ -235,7 +210,7 @@ HitInfo CalculateRay(in Ray ray) {
 }
 
 const vec4 skyColor = vec4(0.96, 0.95, 1.0, 1.0);
-const float skyIntensity = 1.0;
+const float skyIntensity = 0.8;
 
 vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 	vec4 rayColor = vec4(1);
@@ -244,7 +219,7 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 
 	// BVH visualisation
 //	for (int i = 0; i < nodes.length(); ++i) {
-//		if (HitAABB(nodes[i].boundsMin.xyz, nodes[i].boundsMax.xyz, ray)) incomingLight += vec3(0.2, 0.0, 0.0);
+//		if (HitAABB(nodes[i].boundsMin.xyz, nodes[i].boundsMax.xyz, ray)) incomingLight += vec4(0.5, 0.0, 0.0, 0.0);
 //	}
 
 	// Raytracing
@@ -257,26 +232,35 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 			ray.origin = hitInfo.hitPoint;
 			
 			bool isSpecularBounce = hitInfo.hitMaterial.specularChance > RandomValue(state);
-
+			float smoothness = (isSpecularBounce ? hitInfo.hitMaterial.specularSmoothness : hitInfo.hitMaterial.smoothness);
+			bool isRefracted = hitInfo.hitMaterial.refractionAmount > RandomValue(state);
+			
+			ray.origin = hitInfo.hitPoint;
 			ray.direction = normalize (
 				mix (
 					mix (
-						reflect(ray.direction, hitInfo.hitNormal), RandomInHemisphere(hitInfo.hitNormal, state),
-						FresnelReflectAmount(1.0003, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, mix(hitInfo.hitMaterial.roughness, hitInfo.hitMaterial.specularRoughness, isSpecularBounce))
+						RandomInHemisphere(hitInfo.hitNormal, state),
+						reflect(ray.direction, hitInfo.hitNormal),
+						smoothness
 					),
 					mix (
-						refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior), -RandomInHemisphere(hitInfo.hitNormal, state),
-						FresnelReflectAmount(1.0003, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, mix(hitInfo.hitMaterial.roughness, hitInfo.hitMaterial.specularRoughness, isSpecularBounce))
+						-RandomInHemisphere(hitInfo.hitNormal, state),
+						refract(ray.direction, hitInfo.hitNormal, hitInfo.hitMaterial.ior),
+						smoothness
 					),
-					hitInfo.hitMaterial.refractionAmount
+					isRefracted
 				)
 			);
 
-			ray.origin += ray.direction * 0.00005;
+			ray.origin += ray.direction * 0.00005; // Make sure ray is above the surface when bouncing
 
 			emittedLight += hitInfo.hitMaterial.emissionColor * hitInfo.hitMaterial.emissionStrength;
 			incomingLight += emittedLight * rayColor;
+			vec3 absorb = exp(-hitInfo.hitMaterial.baseColor.rgb * hitInfo.travelDist);
 			rayColor *= mix(hitInfo.hitMaterial.baseColor, hitInfo.hitMaterial.specularColor, isSpecularBounce);
+			rayColor *= mix(vec4(1), vec4(absorb, 1.0), isRefracted);
+
+			if (max(rayColor.r, max(rayColor.g, rayColor.b)) < 0.01) break;
 		} else {
 			currBounces++;
 			
@@ -287,7 +271,7 @@ vec3 RayTrace(in Ray ray, int maxBounces, inout uint state) {
 		}
 	}
 
-	return incomingLight.rgb / currBounces;
+	return incomingLight.rgb;
 }
 
 void main() {
@@ -299,18 +283,18 @@ void main() {
 	
 	vec2 pixelPos = vec2(viewportCenter.x * textureSize(accumTexture, 0).x/textureSize(accumTexture, 0).y, viewportCenter.y);
 	ray.direction = normalize (
-		vec3(inverse(cam.view) * vec4(-pixelPos.x, pixelPos.y, 1.0, 0.0))
+		vec3(inverse(cam.view) * vec4(-pixelPos.x, pixelPos.y, 1.0, 0.0)) + RandomDirection(rngState) * 0.0005
 	);
 
 	vec3 finalColor = vec3(0);
 	vec3 rayTraceColor = vec3(0);
 
-	int maxBounces = 4;
+	int maxBounces = 6;
 	rayTraceColor = RayTrace(ray, maxBounces, rngState);
 
 
 
-	float weight = 1.0 / (currAccumPass + 1.0);
+	float weight = 1.0 / currAccumPass;
 	finalColor = texture(accumTexture, accumTexCoords).rgb * (1.0 - weight) + rayTraceColor * weight;
 
 	fragColor = vec4(finalColor, 1.0);
