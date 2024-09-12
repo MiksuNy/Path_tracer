@@ -39,14 +39,16 @@ void Program::SetUniform3f(const char* uName, glm::vec3 v)
 {
 	glUniform3f(glGetUniformLocation(ID, uName), v.x, v.y, v.z);
 }
+void Program::SetUniform4f(const char* uName, glm::vec4 v)
+{
+	glUniform4f(glGetUniformLocation(ID, uName), v.x, v.y, v.z, v.w);
+}
 
 void Program::SetUniformCamera(Camera &cam)
 {
 	this->Use();
 	this->SetUniform3f("cam.position", cam.position);
-	this->SetUniform3f("cam.up", cam.up);
-	this->SetUniform3f("cam.right", cam.right);
-	this->SetUniform3f("cam.forward", cam.forward);
+	glUniformMatrix4fv(glGetUniformLocation(this->ID, "cam.view"), 1, GL_FALSE, &cam.view[0][0]);
 	this->Unuse();
 }
 

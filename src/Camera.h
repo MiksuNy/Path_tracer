@@ -1,13 +1,21 @@
 #pragma once
 
 #include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
 
 struct Camera
 {
 public:
-	glm::vec3 position, velocity, up, right, forward;
+	const float speed = 0.05f;
+	bool moving = false;
+	
+	glm::vec3 position	 = glm::vec3(0.0, 0.0, 0.0);
+	glm::vec3 forward	 = glm::vec3(0.0, 0.0, 0.0);
+	glm::vec3 up		 = glm::vec3(0.0, 1.0, 0.0);
+	glm::vec3 right		 = glm::vec3(1.0, 0.0, 0.0);
+	glm::vec3 target	 = glm::vec3(0.0, 0.2, 0.0);
+	glm::mat4 view;
 
-	Camera(glm::vec3 position);
-
+	Camera(glm::vec3 pos);
 	void UpdateView();
 };

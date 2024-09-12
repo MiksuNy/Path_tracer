@@ -1,15 +1,16 @@
 #include "Camera.h"
 
-Camera::Camera(glm::vec3 _pos)
+Camera::Camera(glm::vec3 pos)
 {
-	position = _pos;
-	velocity = glm::vec3(0);
-	up = glm::vec3(0, 1, 0);
-	right = glm::vec3(1, 0, 0);
-	this->UpdateView();
+	position = pos;
 }
 
 void Camera::UpdateView()
 {
-	forward = glm::vec3(position.x, position.y, position.z - 1.0f);
+	glm::vec3 worldUp = glm::vec3(0.0, 1.0, 0.0);
+	forward = glm::normalize(position - target);
+	right = glm::normalize(glm::cross(worldUp, forward));
+	up = glm::cross(forward, right);
+
+	view = glm::lookAt(position, position + forward, worldUp);
 }
