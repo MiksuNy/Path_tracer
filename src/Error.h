@@ -4,12 +4,9 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
-#include <string>
-#include <fstream>
 
-class Error
+struct Error
 {
-public:
     static void GLAPIENTRY
         MessageCallback(GLenum source,
             GLenum type,

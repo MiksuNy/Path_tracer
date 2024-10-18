@@ -27,5 +27,5 @@ uniform sampler2D accumTexture;
 //}
 
 void main() {
-	fragColor = texture(accumTexture, accumTexCoords);
+    fragColor = texture(accumTexture, accumTexCoords);
 }

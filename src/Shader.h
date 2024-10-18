@@ -1,30 +1,39 @@
 #pragma once
 
+#include <fstream>
+#include <string>
+
 #include <glm.hpp>
 
-#include "Utility.h"
+#include "Error.h"
 #include "Object.h"
 #include "Camera.h"
 
 struct Shader
 {
-public:
 	GLuint ID;
 
-	void Create(GLenum shaderType);
-	void Parse(const char* filepath);
-
+	Shader(GLenum shaderType, const char* filepath);
 	~Shader();
 };
 
-struct Program
+struct ComputeProgram
 {
-public:
+	GLuint shaderID, programID;
+
+	ComputeProgram(const char* filepath);
+	~ComputeProgram();
+	
+	void Use(int x, int y, int z);
+};
+
+struct ShaderProgram
+{
 	GLuint ID;
 
-	void Create();
-	void Attach(Shader &shader);
-	void Link();
+	ShaderProgram(const char* vertexPath, const char* fragmentPath);
+	~ShaderProgram();
+
 	void Use();
 	void Unuse();
 
@@ -35,9 +44,4 @@ public:
 	void SetUniform4f(const char* uName, glm::vec4 v);
 
 	void SetUniformCamera(Camera &cam);
-
-	~Program();
-private:
-	Shader vertexShader;
-	Shader fragmentShader;
 };
