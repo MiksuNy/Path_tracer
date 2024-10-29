@@ -74,12 +74,23 @@ glm::vec3 Triangle::Center()
 	return glm::vec3(cX, cY, cZ);
 }
 
+void Node::GrowBounds(Triangle tri)
+{
+	boundsMin = glm::min(boundsMin, tri.p1);
+	boundsMax = glm::max(boundsMax, tri.p1);
+
+	boundsMin = glm::min(boundsMin, tri.p2);
+	boundsMax = glm::max(boundsMax, tri.p2);
+
+	boundsMin = glm::min(boundsMin, tri.p3);
+	boundsMax = glm::max(boundsMax, tri.p3);
+}
+
 Mesh::Mesh(const char* filePath, uint32_t materialIndex)
 {
 	this->materialIndex = materialIndex;
 	Load(filePath);
 	GenBoundingBox();
-	SplitNode(nodes[0], 1);
 
 	std::cout << "\n\nMesh BVH size: " << nodes.size() << "\n\n";
 
@@ -169,18 +180,6 @@ void Mesh::GenBoundingBox()
 	std::cout << "\tBounds max: " << "x: " << root.boundsMax.x << ", y: " << root.boundsMax.y << ", z: " << root.boundsMax.z << "\n\n\n\n\n";
 }
 
-void Node::GrowBounds(Triangle tri)
-{
-	boundsMin = glm::min(boundsMin, tri.p1);
-	boundsMax = glm::max(boundsMax, tri.p1);
-
-	boundsMin = glm::min(boundsMin, tri.p2);
-	boundsMax = glm::max(boundsMax, tri.p2);
-
-	boundsMin = glm::min(boundsMin, tri.p3);
-	boundsMax = glm::max(boundsMax, tri.p3);
-}
-
 void Mesh::SplitNode(Node parent, int depth)
 {
 	if (depth <= 0) return;
@@ -196,9 +195,9 @@ void Mesh::SplitNode(Node parent, int depth)
 	float sizeY = abs(parent.boundsMin.y) + abs(parent.boundsMax.y);
 	float sizeZ = abs(parent.boundsMin.z) + abs(parent.boundsMax.z);
 
-	//std::cout << "\n\tMax X: " << sizeX << "\n";
-	//std::cout << "\n\tMax Y: " << sizeY << "\n";
-	//std::cout << "\n\tMax Z: " << sizeZ << "\n\n\n";
+	std::cout << "\n\tMax X: " << sizeX << "\n";
+	std::cout << "\n\tMax Y: " << sizeY << "\n";
+	std::cout << "\n\tMax Z: " << sizeZ << "\n\n\n";
 
 	int splitAxis = (sizeX > glm::max(sizeY, sizeZ)) ? 0 : (sizeY > glm::max(sizeX, sizeZ)) ? 1 : 2;
 	//std::cout << "Split axis: " << ((splitAxis == 0) ? "X" : (splitAxis == 1) ? "Y" : (splitAxis == 2) ? "Z" : "This isn't supposed to happen") << std::endl;

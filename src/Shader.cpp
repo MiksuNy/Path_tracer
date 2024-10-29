@@ -25,7 +25,7 @@ Shader::~Shader() { glDeleteShader(ID); }
 
 ComputeProgram::ComputeProgram(const char* filepath)
 {
-	shaderID = glCreateShader(GL_COMPUTE_SHADER);
+	GLuint shaderID = glCreateShader(GL_COMPUTE_SHADER);
 
 	std::string outString, line;
 	std::ifstream inFile(filepath);
@@ -38,22 +38,44 @@ ComputeProgram::ComputeProgram(const char* filepath)
 	glShaderSource(shaderID, 1, &source, NULL);
 	glCompileShader(shaderID);
 
-	programID = glCreateProgram();
-	glAttachShader(programID, shaderID);
-	glLinkProgram(programID);
+	ID = glCreateProgram();
+	glAttachShader(ID, shaderID);
+	glLinkProgram(ID);
+
+	glDeleteShader(shaderID);
 }
 
-void ComputeProgram::Use(int x, int y, int z)
+void ComputeProgram::Use() { glUseProgram(ID); }
+void ComputeProgram::Unuse() { glUseProgram(ID); }
+
+void ComputeProgram::SetUniform1f(const char* uName, float f)
 {
-	glUseProgram(programID);
-	glDispatchCompute(x, y, z);
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glUniform1f(glGetUniformLocation(ID, uName), f);
+}
+void ComputeProgram::SetUniform1i(const char* uName, int i)
+{
+	glUniform1i(glGetUniformLocation(ID, uName), i);
+}
+void ComputeProgram::SetUniform2f(const char* uName, glm::vec2 v)
+{
+	glUniform2f(glGetUniformLocation(ID, uName), v.x, v.y);
+}
+void ComputeProgram::SetUniform3f(const char* uName, glm::vec3 v)
+{
+	glUniform3f(glGetUniformLocation(ID, uName), v.x, v.y, v.z);
+}
+void ComputeProgram::SetUniform4f(const char* uName, glm::vec4 v)
+{
+	glUniform4f(glGetUniformLocation(ID, uName), v.x, v.y, v.z, v.w);
 }
 
-ComputeProgram::~ComputeProgram()
+void ComputeProgram::SetUniformCamera(Camera& cam)
 {
-	glDeleteProgram(programID);
+	SetUniform3f("cam.position", cam.position);
+	glUniformMatrix4fv(glGetUniformLocation(this->ID, "cam.inverseView"), 1, GL_FALSE, &cam.inverseView[0][0]);
 }
+
+ComputeProgram::~ComputeProgram() { glDeleteProgram(ID); }
 
 
 
@@ -79,7 +101,7 @@ void ShaderProgram::SetUniform1f(const char* uName, float f)
 }
 void ShaderProgram::SetUniform1i(const char* uName, int i)
 {
-	glUniform1f(glGetUniformLocation(ID, uName), i);
+	glUniform1i(glGetUniformLocation(ID, uName), i);
 }
 void ShaderProgram::SetUniform2f(const char* uName, glm::vec2 v)
 {

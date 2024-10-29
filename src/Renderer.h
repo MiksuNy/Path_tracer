@@ -40,6 +40,6 @@ namespace Renderer
     extern Camera camera;
     extern Scene scene;
 
-    int Init();
+    int Init(int width, int height);
     void MouseCallback(GLFWwindow* window, double xpos, double ypos);
 }

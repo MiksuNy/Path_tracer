@@ -208,12 +208,12 @@ HitInfo CalculateRay(in Ray ray) {
 	//closestHit = TraverseBVH(ray);
 
 	// Old mesh triangle test
-	if (HitAABB(nodes[0].boundsMin.xyz, nodes[0].boundsMax.xyz, ray)) {
-		for (int i = 0; i < meshTriangles.length(); ++i) {
-			tempHit = HitTriangle(meshTriangles[i], ray);
-			if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) closestHit = tempHit;
-		}
-	}
+//	if (HitAABB(nodes[0].boundsMin.xyz, nodes[0].boundsMax.xyz, ray)) {
+//		for (int i = 0; i < meshTriangles.length(); ++i) {
+//			tempHit = HitTriangle(meshTriangles[i], ray);
+//			if (tempHit.hasHit && tempHit.hitDist < closestHit.hitDist) closestHit = tempHit;
+//		}
+//	}
 
 	for (int i = 0; i < sceneTriangles.length(); ++i) {
 		tempHit = HitTriangle(sceneTriangles[i], ray);
@@ -300,7 +300,7 @@ vec3 RayTrace(in Ray ray, in int maxBounces, inout uint state) {
 				)
 			);
 
-			ray.origin += ray.direction * (0.0002 * RandomValue(state)); // Make sure ray doesn't collide again on the same point
+			ray.origin += ray.direction * 0.00015; // Make sure ray doesn't collide again on the same point
 
 			emittedLight += hitInfo.hitMaterial.emissionColor.rgb * hitInfo.hitMaterial.emissionStrength;
 			rayColor *= mix(mix(hitInfo.hitMaterial.baseColor.rgb, hitInfo.hitMaterial.specularColor.rgb, isSpecularBounce), hitInfo.hitMaterial.baseColor.rgb, isRefracted);
@@ -334,7 +334,7 @@ void main() {
 
 	ray.direction = normalize(vec3(cam.inverseView * vec4(-pixelPos.x + jitter.x, pixelPos.y + jitter.y, 1.0, 0.0)));
 
-	int maxBounces = debugNormal ? 1 : 8;
+	int maxBounces = debugNormal ? 1 : 12;
 	vec3 rayTraceColor = RayTrace(ray, maxBounces, rngState);
 
 	vec3 finalColor = mix(texture(accumTexture, accumTexCoords).rgb, rayTraceColor, 1.0 / float(currAccumPass));
