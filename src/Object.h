@@ -3,76 +3,91 @@
 #include <vector>
 #include <glm.hpp>
 
-#include "Utility.h"
-
 #include "Shader.h"
 
 struct Material
 {
-public:
-    glm::vec4 baseColor;
-    glm::vec4 specularColor;
-    glm::vec4 emissionColor;
-    float smoothness;
-    float specularSmoothness;
-    float emissionStrength;
-    float ior;
-    float refractionAmount;
-    float specularChance;
+    glm::vec4 baseColor = glm::vec4(1);
+    glm::vec4 specularColor = glm::vec4(1);
+    glm::vec4 emissionColor = glm::vec4(1);
+    float smoothness = 0.0f;
+    float specularSmoothness = 0.0f;
+    float emissionStrength = 0.0f;
+    float ior = 1.5f;
+    float refractionAmount = 0.0f;
+    float specularChance = 0.0f;
 private:
-    float pad[2];
-};
-
-struct Scene
-{
-public:
-    std::vector<Material> materials;
+    int pad[2];
 };
 
 struct Sphere
 {
-public:
-    glm::vec3 position;
-    float radius;
+    glm::vec3 position = glm::vec3(0);
+    float radius = 0.0f;
+    unsigned int materialIndex = 0;
+    
+    Sphere(struct Scene& scene, glm::vec3 pos, float rad, unsigned int materialIndex);
 
-    Sphere(struct Program& program, const char* name, glm::vec3 pos, float rad, struct Material& material);
+private:
+    int pad[3];
 };
 
 struct Triangle
 {
-public:
-    glm::vec4 p1, p2, p3;
-    uint32_t materialIndex; // Index to scene.materials
-    float pad[3];
+    glm::vec4 p1 = glm::vec4(0);
+    glm::vec4 p2 = glm::vec4(0);
+    glm::vec4 p3 = glm::vec4(0);
+    unsigned int materialIndex = 0;
 
     Triangle();
-    Triangle(struct Program& program, const char* name, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, uint32_t materialIndex);
+    Triangle(struct Scene& scene, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, unsigned int materialIndex);
     glm::vec3 Center();
+    
+private:
+    int pad[3];
+};
+
+struct Scene
+{
+    std::vector<Material> materials;
+    std::vector<Sphere> spheres;
+    std::vector<Triangle> triangles;
+
+    void SetupSSBOs();
+    void UpdateSSBOs();
+
+private:
+    GLuint materialSSBO, sphereSSBO, triangleSSBO;
 };
 
 struct Node
 {
-    float boundsMin[4] = { 1e30f };
-    float boundsMax[4] = { -1e30f };
-    bool isLeaf = false;
-    int nextIndex = 0;
+    glm::vec4 boundsMin = glm::vec4(1e30f);
+    glm::vec4 boundsMax = glm::vec4(-1e30f);
+    int triIndex = 0;
     int numTris = 0;
+    int childrenIndex = 0;
+
+    void GrowBounds(Triangle tri);
+
+private:
+    int pad;
 };
 
 struct Mesh
 {
-public:
     std::vector<glm::vec4> vertices;
     std::vector<glm::ivec4> indices;
     std::vector<Triangle> tris;
 
-    uint32_t materialIndex;
+    uint32_t materialIndex = 0;
 
     std::vector<Node> nodes;
     
-    Mesh(Scene scene, const char* filePath, uint32_t materialIndex);
+    Mesh(const char* filePath, uint32_t materialIndex);
 
 private:
     void Load(const char* filePath);
     void GenBoundingBox();
+    void SplitNode(Node parent, int depth);
 };
