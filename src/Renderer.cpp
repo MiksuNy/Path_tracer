@@ -111,6 +111,9 @@ int Renderer::Init(int width, int height)
        @@     @@@@  @@@   @@@ @@@   @@@@ @@ @@      @@@@       @@@@@     @@@  @@@@ @@  @@   @@
     */
 
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glEnable(GL_FRAMEBUFFER_SRGB);
+
     glGenFramebuffers(1, &rtFboID);
     glBindFramebuffer(GL_FRAMEBUFFER, rtFboID);
 
@@ -132,7 +135,7 @@ int Renderer::Init(int width, int height)
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, screenDepthRbID);
 
-    glEnable(GL_FRAMEBUFFER_SRGB);
+    //glEnable(GL_FRAMEBUFFER_SRGB);
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);

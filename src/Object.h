@@ -8,14 +8,15 @@
 struct Material
 {
     glm::vec4 baseColor = glm::vec4(1);
-    glm::vec4 specularColor = glm::vec4(1);
+    glm::vec4 coatColor = glm::vec4(1);
     glm::vec4 emissionColor = glm::vec4(1);
     float smoothness = 0.0f;
-    float specularSmoothness = 0.0f;
+    float coatSmoothness = 0.0f;
     float emissionStrength = 0.0f;
     float ior = 1.5f;
     float refractionAmount = 0.0f;
-    float specularChance = 0.0f;
+    float coatChance = 0.0f;
+
 private:
     int pad[2];
 };

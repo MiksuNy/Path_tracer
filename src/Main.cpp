@@ -17,23 +17,23 @@ int main()
     ComputeProgram computeProgram("res/shaders/rt.comp");
     ShaderProgram computeAccumProgram("res/shaders/compute_accum.vert", "res/shaders/compute_accum.frag");
 
-    Material specular;
-    specular.baseColor = glm::vec4(0.2, 0.9, 0.1, 1.0);
-    specular.smoothness = 0.9f;
-    specular.specularSmoothness = 0.0f;
-    specular.specularColor = glm::vec4(1.0);
-    specular.specularChance = 0.0f;
-    specular.emissionColor = glm::vec4(0);
-    specular.emissionStrength = 0.0f;
-    specular.refractionAmount = 0.0f;
-    Renderer::scene.materials.push_back(specular);
+    Material coat;
+    coat.baseColor = glm::vec4(0.2, 0.9, 0.1, 1.0);
+    coat.smoothness = 0.9f;
+    coat.coatSmoothness = 0.0f;
+    coat.coatColor = glm::vec4(1.0);
+    coat.coatChance = 0.0f;
+    coat.emissionColor = glm::vec4(0);
+    coat.emissionStrength = 0.0f;
+    coat.refractionAmount = 0.0f;
+    Renderer::scene.materials.push_back(coat);
 
     Material diffuse;
     diffuse.baseColor = glm::vec4(0.9, 0.1, 0.1, 1.0);
     diffuse.smoothness = 0.2f;
-    diffuse.specularSmoothness = 0.99f;
-    diffuse.specularColor = glm::vec4(1.0);
-    diffuse.specularChance = 0.1f;
+    diffuse.coatSmoothness = 0.99f;
+    diffuse.coatColor = glm::vec4(1.0);
+    diffuse.coatChance = 0.1f;
     diffuse.emissionColor = glm::vec4(0);
     diffuse.emissionStrength = 0.0f;
     diffuse.refractionAmount = 0.0f;
@@ -42,9 +42,9 @@ int main()
     Material glass;
     glass.baseColor = glm::vec4(0.9, 0.1, 0.1, 1.0);
     glass.smoothness = 0.99f;
-    glass.specularSmoothness = 0.99f;
-    glass.specularColor = glm::vec4(1.0);
-    glass.specularChance = 0.2f;
+    glass.coatSmoothness = 0.99f;
+    glass.coatColor = glm::vec4(1.0);
+    glass.coatChance = 0.2f;
     glass.emissionColor = glm::vec4(0);
     glass.emissionStrength = 0.0f;
     glass.refractionAmount = 0.8f;
@@ -54,9 +54,9 @@ int main()
     Material ground;
     ground.baseColor = glm::vec4(0.9, 0.9, 0.9, 1.0);
     ground.smoothness = 0.0f;
-    ground.specularSmoothness = 0.0f;
-    ground.specularColor = glm::vec4(1.0);
-    ground.specularChance = 0.0f;
+    ground.coatSmoothness = 0.0f;
+    ground.coatColor = glm::vec4(1.0);
+    ground.coatChance = 0.0f;
     ground.emissionColor = glm::vec4(0);
     ground.emissionStrength = 0.0f;
     ground.refractionAmount = 0.0f;
@@ -68,7 +68,7 @@ int main()
     sun.emissionStrength = 5.0f;
     Renderer::scene.materials.push_back(sun);
 
-    Mesh mesh("res/meshes/bunny1.obj", 3);
+    Mesh mesh1("res/meshes/car.obj", 3);
 
     Triangle(Renderer::scene, glm::vec3(-1.0, 0.0, 3.0), glm::vec3(1.0, 0.0, 3.0), glm::vec3(0.0, 1.4, 3.0), 4);
     Triangle(Renderer::scene, glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), 3);
