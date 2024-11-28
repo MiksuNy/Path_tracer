@@ -5,7 +5,10 @@
 
 #include "Shader.h"
 
-struct Material
+// TODO: SSBOs need to be padded to vec4 leaving an unused fourth component, is there a way to avoid this?
+
+// Needs to be padded to multiple of 16 bytes for SSBO usage
+struct alignas(16) Material
 {
     glm::vec4 baseColor = glm::vec4(1);
     glm::vec4 coatColor = glm::vec4(1);
@@ -21,7 +24,8 @@ private:
     int pad[2];
 };
 
-struct Sphere
+// Needs to be padded to multiple of 16 bytes for SSBO usage
+struct alignas(16) Sphere
 {
     glm::vec3 position = glm::vec3(0);
     float radius = 0.0f;
@@ -33,7 +37,8 @@ private:
     int pad[3];
 };
 
-struct Triangle
+// Needs to be padded to multiple of 16 bytes for SSBO usage
+struct alignas(16) Triangle
 {
     glm::vec4 p1 = glm::vec4(0);
     glm::vec4 p2 = glm::vec4(0);
@@ -43,7 +48,7 @@ struct Triangle
     Triangle();
     Triangle(struct Scene& scene, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, unsigned int materialIndex);
     glm::vec3 Center();
-    
+
 private:
     int pad[3];
 };
@@ -61,26 +66,26 @@ private:
     GLuint materialSSBO, sphereSSBO, triangleSSBO;
 };
 
-struct Node
+// Needs to be padded to multiple of 16 bytes for SSBO usage
+struct alignas(16) Node
 {
     glm::vec4 boundsMin = glm::vec4(1e30f);
     glm::vec4 boundsMax = glm::vec4(-1e30f);
-    int triIndex = 0;
-    int numTris = 0;
-    int childrenIndex = 0;
+    uint32_t triIndex = 0;
+    uint32_t numTris = 0;
+    uint32_t childrenIndex = 0;
 
     void GrowBounds(Triangle tri);
 
 private:
-    int pad;
+    int pad[1];
 };
 
 struct Mesh
 {
     std::vector<glm::vec4> vertices;
-    std::vector<glm::ivec4> indices;
+    std::vector<glm::uvec4> indices;
     std::vector<Triangle> tris;
-
     uint32_t materialIndex = 0;
 
     std::vector<Node> nodes;
@@ -88,7 +93,11 @@ struct Mesh
     Mesh(const char* filePath, uint32_t materialIndex);
 
 private:
+    GLuint meshSSBO, bvhSSBO;
+
+    unsigned int usedNodes = 1;
+
     void Load(const char* filePath);
     void GenBoundingBox();
-    void SplitNode(Node parent, int depth);
+    void SplitNode(unsigned int nodeIndex, unsigned int depth);
 };

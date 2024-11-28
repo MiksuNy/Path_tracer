@@ -68,9 +68,9 @@ int main()
     sun.emissionStrength = 5.0f;
     Renderer::scene.materials.push_back(sun);
 
-    Mesh mesh1("res/meshes/car.obj", 3);
+    Mesh mesh("res/meshes/bvh_test.obj", 3);
 
-    Triangle(Renderer::scene, glm::vec3(-1.0, 0.0, 3.0), glm::vec3(1.0, 0.0, 3.0), glm::vec3(0.0, 1.4, 3.0), 4);
+    //Triangle(Renderer::scene, glm::vec3(-1.0, 0.0, 3.0), glm::vec3(1.0, 0.0, 3.0), glm::vec3(0.0, 1.4, 3.0), 4);
     Triangle(Renderer::scene, glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), 3);
 
     //for (int i = -6; i < 6; i++)
@@ -79,7 +79,7 @@ int main()
     //    {
     //        for (int k = -6; k < 6; k++)
     //        {
-    //            Sphere(Renderer::scene, glm::vec3(((float)i) / 3.0, ((float)j) + 0.101, ((float)k) / 3.0), 0.1, 2);
+    //            Sphere(Renderer::scene, glm::vec3(((float)i) / 3.0, ((float)j) + 0.101, ((float)k) / 3.0), 0.1, 3);
     //        }
     //    }
     //}

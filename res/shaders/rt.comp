@@ -20,10 +20,10 @@ uniform int currAccumPass;
 
 uniform bool debugNormal;
 
-const int maxBounces = debugNormal ? 1 : 3;
+const int maxBounces = debugNormal ? 1 : 6;
 
 const vec3 skyColor = vec3(1.0);
-const float skyIntensity = 0.5;
+const float skyIntensity = 0.9;
 
 struct Ray { vec3 origin; vec3 direction; };
 struct Camera {
@@ -40,12 +40,12 @@ struct Material {
 	float ior;
 	float refractionAmount;
 	float coatChance;
-	/* + 8 bytes of padding */
-};
-struct Sphere { vec3 position; float radius; uint materialIndex; /* + 12 bytes of padding */ };
-struct Triangle { vec4 p1; vec4 p2; vec4 p3; uint materialIndex; /* + 12 bytes of padding */ };
+	/* + 8 bytes */
+}; // 80 bytes
+struct Sphere { vec3 position; float radius; uint materialIndex; /* + 12 bytes */ }; // 32 bytes
+struct Triangle { vec4 p1; vec4 p2; vec4 p3; uint materialIndex; /* + 12 bytes */ }; // 64 bytes
+struct Node { vec4 boundsMin; vec4 boundsMax; uint triIndex; uint numTris; uint childrenIndex; /* + 4 bytes */}; // 48 bytes
 struct HitInfo { vec3 hitPoint; vec3 hitNormal; float hitDist; float travelDist; bool hasHit; bool frontFace; Material hitMaterial; };
-struct Node { vec4 boundsMin; vec4 boundsMax; int triIndex; int numTris; int childrenIndex; };
 
 uniform Camera cam;
 
@@ -180,16 +180,16 @@ HitInfo HitTriangle(in Triangle tri, in Ray ray) {
 }
 
 void TraverseBVH(inout HitInfo result, in Ray ray) {
-	Node nodeStack[4];
-	int stackIndex = 0;
+	Node nodeStack[6];
+	uint stackIndex = 0;
 	nodeStack[stackIndex++] = nodes[0];
 
 	while (stackIndex > 0) {
 		Node node = nodeStack[--stackIndex];
 
 		if (HitAABB(node.boundsMin.xyz, node.boundsMax.xyz, ray)) {
-			if (node.childrenIndex != 0) {
-			for (int i = node.triIndex; i < node.triIndex + node.numTris; ++i) {
+			if (node.numTris != 0) {
+			for (uint i = node.triIndex; i < node.triIndex + node.numTris; ++i) {
 					HitInfo triHit = HitTriangle(meshTriangles[i], ray);
 					if (triHit.hasHit && triHit.hitDist < result.hitDist) result = triHit;
 				}
@@ -260,7 +260,7 @@ vec3 RayTrace(in Ray ray, in int maxBounces, inout uint state) {
 
 	// BVH visualisation
 //	for (int i = 0; i < nodes.length(); ++i) {
-//		float color = 0.01;
+//		float color = 0.02;
 //		if (HitAABB(nodes[i].boundsMin.xyz, nodes[i].boundsMax.xyz, ray)) incomingLight.xyz += color;
 //	}
 
@@ -279,8 +279,8 @@ vec3 RayTrace(in Ray ray, in int maxBounces, inout uint state) {
 			
 			const float ior = hitInfo.frontFace ? (1.0 / hitInfo.hitMaterial.ior) : hitInfo.hitMaterial.ior;
 
-			const bool iscoatBounce = hitInfo.hitMaterial.coatChance > RandomValue(state);
-			const float fresnel = FresnelReflectAmount(ior, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, 1.0 - hitInfo.hitMaterial.refractionAmount);
+			const bool isCoatBounce = hitInfo.hitMaterial.coatChance > RandomValue(state);
+			const float fresnel = FresnelReflectAmount(1.0, hitInfo.hitMaterial.ior, hitInfo.hitNormal, ray.direction, 1.0 - hitInfo.hitMaterial.refractionAmount);
 
 			const bool isRefracted = fresnel < RandomValue(state);
 
@@ -291,7 +291,7 @@ vec3 RayTrace(in Ray ray, in int maxBounces, inout uint state) {
 					mix (
 						randInHemiSphere,
 						reflect(ray.direction, hitInfo.hitNormal),
-						iscoatBounce ? hitInfo.hitMaterial.coatSmoothness : hitInfo.hitMaterial.smoothness
+						isCoatBounce ? hitInfo.hitMaterial.coatSmoothness : hitInfo.hitMaterial.smoothness
 					),
 					mix (
 						-randInHemiSphere,
@@ -305,7 +305,7 @@ vec3 RayTrace(in Ray ray, in int maxBounces, inout uint state) {
 			ray.origin += ray.direction * 0.0002; // Make sure ray doesn't collide again on the same point
 
 			emittedLight += hitInfo.hitMaterial.emissionColor.rgb * hitInfo.hitMaterial.emissionStrength;
-			rayColor *= mix(mix(hitInfo.hitMaterial.baseColor.rgb, hitInfo.hitMaterial.coatColor.rgb, iscoatBounce), hitInfo.hitMaterial.baseColor.rgb, isRefracted);
+			rayColor *= mix(mix(hitInfo.hitMaterial.baseColor.rgb, hitInfo.hitMaterial.coatColor.rgb, isCoatBounce), hitInfo.hitMaterial.baseColor.rgb, isRefracted);
 			//vec3 absorb = exp(-hitInfo.hitMaterial.baseColor.rgb * hitInfo.travelDist); // Beer's law
 			//rayColor *= mix(vec3(1), absorb, isRefracted);
 			incomingLight += emittedLight * rayColor;

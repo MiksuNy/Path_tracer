@@ -111,6 +111,8 @@ int Renderer::Init(int width, int height)
        @@     @@@@  @@@   @@@ @@@   @@@@ @@ @@      @@@@       @@@@@     @@@  @@@@ @@  @@   @@
     */
 
+    glfwSwapInterval(1);
+
     //glBindFramebuffer(GL_FRAMEBUFFER, 0);
     //glEnable(GL_FRAMEBUFFER_SRGB);
 
@@ -118,15 +120,12 @@ int Renderer::Init(int width, int height)
     glBindFramebuffer(GL_FRAMEBUFFER, rtFboID);
 
     glGenTextures(1, &accumTexID);
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, accumTexID);
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
     glBindImageTexture(0, accumTexID, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
