@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <glm.hpp>
+#include <map>
 
 #include "Shader.h"
 
@@ -84,20 +85,21 @@ private:
 struct Mesh
 {
     std::vector<glm::vec4> vertices;
-    std::vector<glm::uvec4> indices;
     std::vector<Triangle> tris;
-    uint32_t materialIndex = 0;
 
     std::vector<Node> nodes;
     
-    Mesh(const char* filePath, uint32_t materialIndex);
+    Mesh(const char* filePath, std::vector<Material>& materials);
 
 private:
     GLuint meshSSBO, bvhSSBO;
 
+    std::vector<std::string> materialNames;
+
     unsigned int usedNodes = 1;
 
-    void Load(const char* filePath);
+    void Load(const char* filePath, std::vector<Material>& materials);
+    void LoadMtl(const char* filePath, std::vector<Material>& materials);
     void GenBoundingBox();
     void SplitNode(unsigned int nodeIndex, unsigned int depth);
 };

@@ -83,10 +83,9 @@ void Node::GrowBounds(Triangle tri)
 	boundsMax = glm::max(boundsMax, tri.p3);
 }
 
-Mesh::Mesh(const char* filePath, uint32_t materialIndex)
+Mesh::Mesh(const char* filePath, std::vector<Material>& materials)
 {
-	this->materialIndex = materialIndex;
-	Load(filePath);
+	Load(filePath, materials);
 	GenBoundingBox();
 	SplitNode(0, 1);
 
@@ -106,23 +105,34 @@ Mesh::Mesh(const char* filePath, uint32_t materialIndex)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void Mesh::Load(const char* filePath)
+void Mesh::Load(const char* filePath, std::vector<Material>& materials)
 {
 	double timeBeforeLoad = glfwGetTime();
 
-	std::ifstream inFile(filePath);
-	std::string line;
+	std::string tempFilePath = filePath;
 
-	if (!inFile.is_open())
+	std::ifstream objFile(tempFilePath + ".obj");
+	std::string line;
+	char currMaterialName[64];
+
+	LoadMtl((tempFilePath + ".mtl").c_str(), materials);
+
+	if (materials.empty())
+	{
+		std::cerr << "No materials found for " << filePath << std::endl;
+		return;
+	}
+
+	if (!objFile.is_open())
 	{
 		std::cerr << "File not found: " << filePath << std::endl;
 	}
-	while (getline(inFile, line))
+	while (getline(objFile, line))
 	{
-		if (line.substr(0, 2) == "v ")
+		if (line.substr(0, 2) == "v ") // vertices
 		{
 			glm::vec4 vertex;
-			sscanf_s(line.c_str(), "v %f %f %f", &vertex.x, &vertex.y, &vertex.z); // vertices
+			sscanf_s(line.c_str(), "v %f %f %f", &vertex.x, &vertex.y, &vertex.z);
 			vertex.w = 0.0f;
 
 			vertices.push_back(vertex);
@@ -133,35 +143,116 @@ void Mesh::Load(const char* filePath)
 			sscanf_s(line.c_str(), "f %i %i %i", &index.x, &index.y, &index.z);
 
 			// Do this because obj files start indices at 1
-			index.x -= 1;
-			index.y -= 1;
-			index.z -= 1;
-			index.w = 0;
+			index.x -= 1u;
+			index.y -= 1u;
+			index.z -= 1u;
+			index.w = 0u;
 
-			indices.push_back(index);
+			Triangle tri;
+			tri.p1 = vertices[index.x];
+			tri.p2 = vertices[index.y];
+			tri.p3 = vertices[index.z];
+			unsigned int materialIndex = 0;
+			while (materialIndex < materialNames.size() - 1)
+			{
+				materialIndex++;
+				if (strcmp(currMaterialName, materialNames[materialIndex].c_str()) == 0)
+				{
+					tri.materialIndex = materialIndex;
+					break;
+				}
+			}
+			tris.push_back(tri);
+		}
+		else if (line.substr(0, 7) == "usemtl ")
+		{
+			sscanf_s(line.c_str(), "usemtl %s", &currMaterialName, 64);
+		}
+
+	}
+
+	objFile.close();
+
+	double timeAfterLoad = glfwGetTime();
+
+	std::cout << "\n\n\n\t'" << filePath << "' took " << timeAfterLoad - timeBeforeLoad << " seconds to load" << "\n";
+	std::cout << "\t'" << filePath << "' has " << vertices.size() << " vertices" << "\n";
+	std::cout << "\t'" << filePath << "' has " << tris.size() << " triangles" << "\n\n\n\n\n";
+	
+	vertices.~vector();
+}
+
+void Mesh::LoadMtl(const char* filePath, std::vector<Material>& materials)
+{
+	std::ifstream mtlFile(filePath);
+	std::string line;
+
+	if (!mtlFile.is_open())
+	{
+		std::cerr << "File not found: " << filePath << std::endl;
+	}
+	while (getline(mtlFile, line))
+	{
+		if (line.substr(0, 7) == "newmtl ")
+		{
+			materials.push_back(Material{});
+			Material& newMat = materials[materials.size() - 1];
+
+			char matName[64];
+			sscanf_s(line.c_str(), "newmtl %s", &matName, 64);
+			materialNames.push_back(matName);
+
+			while (getline(mtlFile, line))
+			{
+				// Materials ALWAYS have a blank line between them so we break here to read the name of the next material
+				if (line.substr(0, 1) == "") break;
+
+				else if (line.substr(0, 3) == "Kd ") // Base color
+				{
+					sscanf_s(line.c_str(), "Kd %f %f %f", &newMat.baseColor.x, &newMat.baseColor.y, &newMat.baseColor.z);
+				}
+				else if (line.substr(0, 3) == "Ks ") // Coat color
+				{
+					sscanf_s(line.c_str(), "Ks %f %f %f", &newMat.coatColor.x, &newMat.coatColor.y, &newMat.coatColor.z);
+				}
+				else if (line.substr(0, 3) == "Ke ") // Emission color & strength
+				{
+					glm::vec4 emissionColor;
+					sscanf_s(line.c_str(), "Ke %f %f %f", &emissionColor.x, &emissionColor.y, &emissionColor.z);
+					newMat.emissionStrength = std::max(emissionColor.x, std::max(emissionColor.y, emissionColor.z));
+
+					if (newMat.emissionStrength > 0)
+					{
+						newMat.emissionColor = emissionColor / newMat.emissionStrength;
+					}
+				}
+				else if (line.substr(0, 3) == "Ni ") // Index of refraction
+				{
+					sscanf_s(line.c_str(), "Ni %f", &newMat.ior);
+				}
+				else if (line.substr(0, 3) == "Pr ") // Roughness (smoothness)
+				{
+					float roughness;
+					sscanf_s(line.c_str(), "Pr %f", &roughness);
+					newMat.smoothness = 1.0f - roughness;
+				}
+				else if (line.substr(0, 4) == "Pcr ") // Coat roughness (coat smoothness)
+				{
+					float coatRoughness;
+					sscanf_s(line.c_str(), "Pcr %f", &coatRoughness);
+					newMat.coatSmoothness = 1.0f - coatRoughness;
+				}
+				else if (line.substr(0, 3) == "Tf ") // Refraction amount
+				{
+					float refraction[3];
+					sscanf_s(line.c_str(), "Tf %f %f %f", &refraction[0], &refraction[1], &refraction[2]);
+					newMat.refractionAmount = std::max(refraction[0], std::max(refraction[1], refraction[2]));
+				}
+			}
 		}
 	}
 
-	inFile.close();
-	double timeAfterLoad = glfwGetTime();
-
-	// Make the mesh triangle buffer for ray tracing shader
-	for (int i = 0; i < indices.size(); ++i)
-	{
-		Triangle tri;
-		tri.p1 = vertices[indices[i].x];
-		tri.p2 = vertices[indices[i].y];
-		tri.p3 = vertices[indices[i].z];
-		tri.materialIndex = this->materialIndex;
-		tris.push_back(tri);
-	}
-
-	std::cout << "\n\n\n\t'" << filePath << "' took " << timeAfterLoad - timeBeforeLoad << " seconds to load" << "\n";
-	std::cout << "\t'" << filePath << "' has " << indices.size() << " triangles" << "\n";
-	std::cout << "\t'" << filePath << "' has " << vertices.size() << " vertices" << "\n\n\n\n\n";
-	
-	vertices.~vector();
-	indices.~vector();
+	mtlFile.close();
 }
 
 void Mesh::GenBoundingBox()

@@ -17,79 +17,11 @@ int main()
     ComputeProgram computeProgram("res/shaders/rt.comp");
     ShaderProgram computeAccumProgram("res/shaders/compute_accum.vert", "res/shaders/compute_accum.frag");
 
-    Material coat;
-    coat.baseColor = glm::vec4(0.2, 0.9, 0.1, 1.0);
-    coat.smoothness = 0.9f;
-    coat.coatSmoothness = 0.0f;
-    coat.coatColor = glm::vec4(1.0);
-    coat.coatChance = 0.0f;
-    coat.emissionColor = glm::vec4(0);
-    coat.emissionStrength = 0.0f;
-    coat.refractionAmount = 0.0f;
-    Renderer::scene.materials.push_back(coat);
 
-    Material diffuse;
-    diffuse.baseColor = glm::vec4(0.9, 0.1, 0.1, 1.0);
-    diffuse.smoothness = 0.2f;
-    diffuse.coatSmoothness = 0.99f;
-    diffuse.coatColor = glm::vec4(1.0);
-    diffuse.coatChance = 0.1f;
-    diffuse.emissionColor = glm::vec4(0);
-    diffuse.emissionStrength = 0.0f;
-    diffuse.refractionAmount = 0.0f;
-    Renderer::scene.materials.push_back(diffuse);
 
-    Material glass;
-    glass.baseColor = glm::vec4(0.9, 0.1, 0.1, 1.0);
-    glass.smoothness = 0.99f;
-    glass.coatSmoothness = 0.99f;
-    glass.coatColor = glm::vec4(1.0);
-    glass.coatChance = 0.2f;
-    glass.emissionColor = glm::vec4(0);
-    glass.emissionStrength = 0.0f;
-    glass.refractionAmount = 0.8f;
-    glass.ior = 1.05f;
-    Renderer::scene.materials.push_back(glass);
-    
-    Material ground;
-    ground.baseColor = glm::vec4(0.9, 0.9, 0.9, 1.0);
-    ground.smoothness = 0.0f;
-    ground.coatSmoothness = 0.0f;
-    ground.coatColor = glm::vec4(1.0);
-    ground.coatChance = 0.0f;
-    ground.emissionColor = glm::vec4(0);
-    ground.emissionStrength = 0.0f;
-    ground.refractionAmount = 0.0f;
-    Renderer::scene.materials.push_back(ground);
+    Mesh mesh("res/meshes/material_test/sword_and_ground", Renderer::scene.materials);
 
-    Material sun;
-    sun.baseColor = glm::vec4(1.0);
-    sun.emissionColor = glm::vec4(1.0);
-    sun.emissionStrength = 5.0f;
-    Renderer::scene.materials.push_back(sun);
 
-    Mesh mesh("res/meshes/bvh_test.obj", 3);
-
-    //Triangle(Renderer::scene, glm::vec3(-1.0, 0.0, 3.0), glm::vec3(1.0, 0.0, 3.0), glm::vec3(0.0, 1.4, 3.0), 4);
-    Triangle(Renderer::scene, glm::vec3(5000.0, 0.0, 5000.0), glm::vec3(-5000.0, 0.0, 5000.0), glm::vec3(0.0, 0.0, -5000.0), 3);
-
-    //for (int i = -6; i < 6; i++)
-    //{
-    //    for (int j = 0; j < 1; j++)
-    //    {
-    //        for (int k = -6; k < 6; k++)
-    //        {
-    //            Sphere(Renderer::scene, glm::vec3(((float)i) / 3.0, ((float)j) + 0.101, ((float)k) / 3.0), 0.1, 3);
-    //        }
-    //    }
-    //}
-
-    //Sphere(Renderer::scene, glm::vec3(0.0, 1.5, 0.0), 0.2, 4);
-    //Sphere(Renderer::scene, glm::vec3(5000.0, 5000.0, 5000.0), 500.0, 4);
-
-    //Sphere(Renderer::scene, glm::vec3(-0.2, 1.0, 0.0), 0.5, 0);
-    //Sphere(Renderer::scene, glm::vec3(2.5, 2.5, 0.0), 2.5, 3);
-    //Sphere(Renderer::scene, glm::vec3(100.0, 100.0, 0.0), 5.0, 4);
 
     Renderer::scene.SetupSSBOs();
 
