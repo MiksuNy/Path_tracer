@@ -361,3 +361,21 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/res/meshes/material_test/ball.mtl
+/res/meshes/material_test/ball.obj
+/res/meshes/material_test/balls.mtl
+/res/meshes/material_test/balls.obj
+/res/meshes/material_test/bunny.mtl
+/res/meshes/material_test/bunny.obj
+/res/meshes/material_test/cube_and_ground.mtl
+/res/meshes/material_test/cube_and_ground.obj
+/res/meshes/material_test/diffuse_monkey.mtl
+/res/meshes/material_test/diffuse_monkey.obj
+/res/meshes/material_test/evil_monkey.mtl
+/res/meshes/material_test/evil_monkey.obj
+/res/meshes/material_test/something.mtl
+/res/meshes/material_test/something.obj
+/res/meshes/material_test/sponza.mtl
+/res/meshes/material_test/sponza.obj
+/res/meshes/material_test/sword_and_ground.mtl
+/res/meshes/material_test/sword_and_ground.obj

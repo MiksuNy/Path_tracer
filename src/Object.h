@@ -12,27 +12,12 @@
 struct alignas(16) Material
 {
     glm::vec4 baseColor = glm::vec4(1);
-    glm::vec4 coatColor = glm::vec4(1);
     glm::vec4 emissionColor = glm::vec4(1);
-    float smoothness = 0.0f;
-    float coatSmoothness = 0.0f;
+    float roughness = 0.0f;
+    float metallic = 0.0f;
     float emissionStrength = 0.0f;
     float ior = 1.5f;
     float refractionAmount = 0.0f;
-    float coatChance = 0.0f;
-
-private:
-    int pad[2];
-};
-
-// Needs to be padded to multiple of 16 bytes for SSBO usage
-struct alignas(16) Sphere
-{
-    glm::vec3 position = glm::vec3(0);
-    float radius = 0.0f;
-    unsigned int materialIndex = 0;
-    
-    Sphere(struct Scene& scene, glm::vec3 pos, float rad, unsigned int materialIndex);
 
 private:
     int pad[3];
@@ -46,8 +31,6 @@ struct alignas(16) Triangle
     glm::vec4 p3 = glm::vec4(0);
     unsigned int materialIndex = 0;
 
-    Triangle();
-    Triangle(struct Scene& scene, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, unsigned int materialIndex);
     glm::vec3 Center();
 
 private:
@@ -57,14 +40,12 @@ private:
 struct Scene
 {
     std::vector<Material> materials;
-    std::vector<Sphere> spheres;
-    std::vector<Triangle> triangles;
 
     void SetupSSBOs();
     void UpdateSSBOs();
 
 private:
-    GLuint materialSSBO, sphereSSBO, triangleSSBO;
+    GLuint materialSSBO;
 };
 
 // Needs to be padded to multiple of 16 bytes for SSBO usage

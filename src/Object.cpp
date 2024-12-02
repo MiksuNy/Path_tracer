@@ -3,22 +3,10 @@
 void Scene::SetupSSBOs()
 {
 	glGenBuffers(1, &materialSSBO);
-	glGenBuffers(1, &sphereSSBO);
-	glGenBuffers(1, &triangleSSBO);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, materials.size() * sizeof(Material), materials.data(), GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, materialSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, sphereSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, spheres.size() * sizeof(Sphere), spheres.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, sphereSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, triangleSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangles.size() * sizeof(Triangle), triangles.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, triangleSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -28,47 +16,11 @@ void Scene::UpdateSSBOs()
 	glBufferData(GL_SHADER_STORAGE_BUFFER, materials.size() * sizeof(Material), materials.data(), GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, materialSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, sphereSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, spheres.size() * sizeof(Sphere), spheres.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, sphereSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, triangleSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangles.size() * sizeof(Triangle), triangles.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, triangleSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-}
-
-Sphere::Sphere(struct Scene& scene, glm::vec3 pos, float rad, unsigned int materialIndex)
-{
-    this->position = pos;
-    this->radius = rad;
-	this->materialIndex = materialIndex;
-
-	scene.spheres.push_back(*this);
-}
-
-Triangle::Triangle()
-{
-	p1.x = 0.0f; p1.y = 0.0f; p1.z = 0.0f;
-	p2.x = 0.0f; p2.y = 0.0f; p2.z = 0.0f;
-	p3.x = 0.0f; p3.y = 0.0f; p3.z = 0.0f;
-}
-
-Triangle::Triangle(struct Scene& scene, glm::vec3 _p1, glm::vec3 _p2, glm::vec3 _p3, unsigned int materialIndex)
-{
-    p1.x = _p1.x; p1.y = _p1.y; p1.z = _p1.z;
-	p2.x = _p2.x; p2.y = _p2.y; p2.z = _p2.z;
-	p3.x = _p3.x; p3.y = _p3.y; p3.z = _p3.z;
-	this->materialIndex = materialIndex;
-
-	scene.triangles.push_back(*this);
 }
 
 glm::vec3 Triangle::Center()
 {
-	return glm::vec3(p1 + p2 + p3) * 0.3333f;
+	return glm::vec3(p1 + p2 + p3) * 0.33333f;
 }
 
 void Node::GrowBounds(Triangle tri)
@@ -87,7 +39,7 @@ Mesh::Mesh(const char* filePath, std::vector<Material>& materials)
 {
 	Load(filePath, materials);
 	GenBoundingBox();
-	SplitNode(0, 1);
+	SplitNode(0, 6);
 
 	std::cout << "\n\nMesh BVH size: " << nodes.size() << "\n\n";
 
@@ -112,28 +64,28 @@ void Mesh::Load(const char* filePath, std::vector<Material>& materials)
 	std::string tempFilePath = filePath;
 
 	std::ifstream objFile(tempFilePath + ".obj");
-	std::string line;
-	char currMaterialName[64];
-
-	LoadMtl((tempFilePath + ".mtl").c_str(), materials);
-
-	if (materials.empty())
-	{
-		std::cerr << "No materials found for " << filePath << std::endl;
-		return;
-	}
-
 	if (!objFile.is_open())
 	{
 		std::cerr << "File not found: " << filePath << std::endl;
+		return;
 	}
+	std::string line;
+
+	LoadMtl((tempFilePath + ".mtl").c_str(), materials);
+	if (materials.empty())
+	{
+		std::cerr << "No materials found for " << (tempFilePath + ".mtl").c_str() << std::endl;
+		return;
+	}
+
+	char currMaterialName[64];
+
 	while (getline(objFile, line))
 	{
 		if (line.substr(0, 2) == "v ") // vertices
 		{
 			glm::vec4 vertex;
 			sscanf_s(line.c_str(), "v %f %f %f", &vertex.x, &vertex.y, &vertex.z);
-			vertex.w = 0.0f;
 
 			vertices.push_back(vertex);
 		}
@@ -146,7 +98,6 @@ void Mesh::Load(const char* filePath, std::vector<Material>& materials)
 			index.x -= 1u;
 			index.y -= 1u;
 			index.z -= 1u;
-			index.w = 0u;
 
 			Triangle tri;
 			tri.p1 = vertices[index.x];
@@ -177,7 +128,7 @@ void Mesh::Load(const char* filePath, std::vector<Material>& materials)
 
 	std::cout << "\n\n\n\t'" << filePath << "' took " << timeAfterLoad - timeBeforeLoad << " seconds to load" << "\n";
 	std::cout << "\t'" << filePath << "' has " << vertices.size() << " vertices" << "\n";
-	std::cout << "\t'" << filePath << "' has " << tris.size() << " triangles" << "\n\n\n\n\n";
+	std::cout << "\t'" << filePath << "' has " << tris.size() << " triangles" << "\n\n\n\n";
 	
 	vertices.~vector();
 }
@@ -204,16 +155,12 @@ void Mesh::LoadMtl(const char* filePath, std::vector<Material>& materials)
 
 			while (getline(mtlFile, line))
 			{
-				// Materials ALWAYS have a blank line between them so we break here to read the name of the next material
+				// Materials always have a blank line between them so we break here to read the name of the next material
 				if (line.substr(0, 1) == "") break;
 
 				else if (line.substr(0, 3) == "Kd ") // Base color
 				{
 					sscanf_s(line.c_str(), "Kd %f %f %f", &newMat.baseColor.x, &newMat.baseColor.y, &newMat.baseColor.z);
-				}
-				else if (line.substr(0, 3) == "Ks ") // Coat color
-				{
-					sscanf_s(line.c_str(), "Ks %f %f %f", &newMat.coatColor.x, &newMat.coatColor.y, &newMat.coatColor.z);
 				}
 				else if (line.substr(0, 3) == "Ke ") // Emission color & strength
 				{
@@ -221,10 +168,7 @@ void Mesh::LoadMtl(const char* filePath, std::vector<Material>& materials)
 					sscanf_s(line.c_str(), "Ke %f %f %f", &emissionColor.x, &emissionColor.y, &emissionColor.z);
 					newMat.emissionStrength = std::max(emissionColor.x, std::max(emissionColor.y, emissionColor.z));
 
-					if (newMat.emissionStrength > 0)
-					{
-						newMat.emissionColor = emissionColor / newMat.emissionStrength;
-					}
+					if (newMat.emissionStrength > 0) newMat.emissionColor = emissionColor / newMat.emissionStrength;
 				}
 				else if (line.substr(0, 3) == "Ni ") // Index of refraction
 				{
@@ -234,13 +178,13 @@ void Mesh::LoadMtl(const char* filePath, std::vector<Material>& materials)
 				{
 					float roughness;
 					sscanf_s(line.c_str(), "Pr %f", &roughness);
-					newMat.smoothness = 1.0f - roughness;
+					newMat.roughness = roughness;
 				}
-				else if (line.substr(0, 4) == "Pcr ") // Coat roughness (coat smoothness)
+				else if (line.substr(0, 3) == "Pm ") // Metallic
 				{
-					float coatRoughness;
-					sscanf_s(line.c_str(), "Pcr %f", &coatRoughness);
-					newMat.coatSmoothness = 1.0f - coatRoughness;
+					float metallic;
+					sscanf_s(line.c_str(), "Pm %f", &metallic);
+					newMat.metallic = metallic;
 				}
 				else if (line.substr(0, 3) == "Tf ") // Refraction amount
 				{

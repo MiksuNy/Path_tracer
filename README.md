@@ -1,1 +1,1 @@
-<h1>A simple raytracer that runs in a GLSL fragment shader</h1>
+<h1>A toy path tracer</h1>

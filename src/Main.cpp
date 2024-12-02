@@ -8,22 +8,13 @@
 
 int main()
 {
-    // Sets window size to monitor size if both are null
     Renderer::Init(NULL, NULL);
-
-    //ShaderProgram rtProgram("res/shaders/rt.vert", "res/shaders/rt.frag");
-    //ShaderProgram accumProgram("res/shaders/accum.vert", "res/shaders/accum.frag");
     
     ComputeProgram computeProgram("res/shaders/rt.comp");
     ShaderProgram computeAccumProgram("res/shaders/compute_accum.vert", "res/shaders/compute_accum.frag");
 
-
-
-    Mesh mesh("res/meshes/material_test/sword_and_ground", Renderer::scene.materials);
-
-
-
-    Renderer::scene.SetupSSBOs();
+    Mesh mesh("res/meshes/material_test/bunny", Renderer::scene.materials);
+    Renderer::scene.UpdateSSBOs();
 
     double prevFrameTime = 0.0;
     double currFrameTime = 0.0;
@@ -34,8 +25,6 @@ int main()
     bool keyPressed = false;
 
     bool debugNormal = false;
-
-    glBindVertexArray(Renderer::vao);
 
     while (!glfwWindowShouldClose(Renderer::window))
     {

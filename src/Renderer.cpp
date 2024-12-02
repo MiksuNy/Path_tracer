@@ -113,8 +113,8 @@ int Renderer::Init(int width, int height)
 
     glfwSwapInterval(1);
 
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //glEnable(GL_FRAMEBUFFER_SRGB);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     glGenFramebuffers(1, &rtFboID);
     glBindFramebuffer(GL_FRAMEBUFFER, rtFboID);
@@ -139,6 +139,10 @@ int Renderer::Init(int width, int height)
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    scene.SetupSSBOs();
+
+    glBindVertexArray(vao);
 }
 
 void Renderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
@@ -148,7 +152,7 @@ void Renderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
     camera.mouseLastX = xpos;
     camera.mouseLastY = ypos;
 
-    if (abs(xOffset) > 0 || abs(yOffset) > 0) camera.moving = true;
+    if (glm::abs(xOffset) > 0 || glm::abs(yOffset) > 0) camera.moving = true;
 
     float sensitivity = 0.1f;
     xOffset *= sensitivity;
@@ -161,8 +165,8 @@ void Renderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
     if (camera.pitch < -89.0f) camera.pitch = -89.0f;
 
     glm::vec3 direction;
-    direction.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
-    direction.y = sin(glm::radians(camera.pitch));
-    direction.z = sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+    direction.x = glm::cos(glm::radians(camera.yaw)) * glm::cos(glm::radians(camera.pitch));
+    direction.y = glm::sin(glm::radians(camera.pitch));
+    direction.z = glm::sin(glm::radians(camera.yaw)) * glm::cos(glm::radians(camera.pitch));
     camera.forward = glm::normalize(direction);
 }

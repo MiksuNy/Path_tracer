@@ -24,6 +24,7 @@
     <ProjectGuid>{7dc99527-37c7-42e9-91c9-bdf641a1cc4c}</ProjectGuid>
     <RootNamespace>GLSLRayTracer</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Path_tracer</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
